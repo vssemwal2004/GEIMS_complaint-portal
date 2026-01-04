@@ -1,79 +1,121 @@
 /**
  * Email Configuration
  * 
- * Configures Nodemailer transporter for sending emails via SMTP.
+ * Configures email sending via Brevo HTTP API (not SMTP).
+ * This bypasses SMTP port blocking on platforms like Render.
  * All credentials are loaded from environment variables.
  * 
  * Security Considerations:
- * - No hardcoded SMTP credentials
- * - TLS/SSL encryption support
- * - Connection verification on startup
+ * - No hardcoded credentials
+ * - Uses HTTPS (port 443) which is never blocked
  */
 
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Ensure .env is loaded here as well so SMTP_* values
-// are correct even if this module is imported before
-// the main server entry runs dotenv.config().
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// backend/src/config -> go up twice to reach backend/.env
 const envPath = path.join(__dirname, '..', '..', '.env');
 dotenv.config({ path: envPath, override: true });
 
 /**
- * Create and configure email transporter
- * @returns {nodemailer.Transporter}
+ * Send email using Brevo HTTP API
+ * @param {Object} options
+ * @param {string} options.from - Sender email (must be verified in Brevo)
+ * @param {string} options.to - Recipient email
+ * @param {string} options.subject - Email subject
+ * @param {string} options.html - HTML content
+ * @param {string} options.text - Plain text content (optional)
+ * @returns {Promise<Object>}
  */
-const createTransporter = () => {
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT, 10),
-    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+const sendMail = async ({ from, to, subject, html, text }) => {
+  const apiKey = process.env.BREVO_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('BREVO_API_KEY is not configured');
+  }
+
+  const fromName = process.env.SMTP_FROM_NAME || 'GEIMS Complaint Portal';
+  const fromEmail = from || process.env.SMTP_FROM_EMAIL;
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': apiKey,
+      'content-type': 'application/json',
     },
-    // Increased timeouts for cloud environments like Render
-    connectionTimeout: 60000,  // 60 seconds
-    greetingTimeout: 30000,    // 30 seconds
-    socketTimeout: 60000,      // 60 seconds
-    // TLS options for better compatibility
-    tls: {
-      rejectUnauthorized: true,
-      minVersion: 'TLSv1.2',
-    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: text || '',
+    }),
   });
 
-  return transporter;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || `Brevo API error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return { messageId: result.messageId };
 };
 
 /**
- * Verify email transporter connection
- *
- * If no transporter instance is provided, use the default
- * transporter created in this module.
- *
- * @param {nodemailer.Transporter} transporterInstance
+ * Transporter-like object for compatibility with existing code
+ */
+const transporter = {
+  sendMail: async (options) => {
+    return sendMail({
+      from: options.from,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+    });
+  },
+};
+
+/**
+ * Verify email configuration
  * @returns {Promise<boolean>}
  */
-const verifyTransporter = async (transporterInstance = transporter) => {
+const verifyTransporter = async () => {
   try {
-    await transporterInstance.verify();
-    console.log('✅ Email transporter ready');
+    const apiKey = process.env.BREVO_API_KEY;
+    const fromEmail = process.env.SMTP_FROM_EMAIL;
+
+    if (!apiKey) {
+      throw new Error('BREVO_API_KEY is not set');
+    }
+    if (!fromEmail) {
+      throw new Error('SMTP_FROM_EMAIL is not set');
+    }
+
+    // Test API connectivity
+    const response = await fetch('https://api.brevo.com/v3/account', {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'api-key': apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Brevo API returned ${response.status}`);
+    }
+
+    console.log('✅ Email service ready (Brevo HTTP API)');
     return true;
   } catch (error) {
-    console.error('❌ Email transporter verification failed:', error.message);
-    console.warn('⚠️ Emails will not be sent until SMTP is configured correctly');
+    console.error('❌ Email service verification failed:', error.message);
+    console.warn('⚠️ Emails will not be sent until Brevo is configured correctly');
     return false;
   }
 };
-
-// Create transporter instance
-const transporter = createTransporter();
 
 export { transporter, verifyTransporter };
 export default transporter;
