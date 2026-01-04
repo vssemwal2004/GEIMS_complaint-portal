@@ -82,7 +82,7 @@ const sendMail = async ({ from, to, subject, html, text }) => {
       to: [{ email: to }],
       subject,
       htmlContent: html,
-      textContent: text || '',
+      textContent: text || subject || 'Email from GEIMS Complaint Portal',
     }),
   });
 
