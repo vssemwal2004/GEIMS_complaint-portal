@@ -20,6 +20,31 @@ const envPath = path.join(__dirname, '..', '..', '.env');
 dotenv.config({ path: envPath, override: true });
 
 /**
+ * Parse email from various formats
+ * Handles: "Name <email@example.com>", "<email@example.com>", "email@example.com"
+ * @param {string} input
+ * @returns {{ name: string|null, email: string|null }}
+ */
+const parseEmailAddress = (input) => {
+  if (!input) return { name: null, email: null };
+  
+  // Match "Name <email>" format
+  const match = input.match(/^(.+?)\s*<([^>]+)>$/);
+  if (match) {
+    return { name: match[1].trim(), email: match[2].trim() };
+  }
+  
+  // Match "<email>" format
+  const angleMatch = input.match(/^<([^>]+)>$/);
+  if (angleMatch) {
+    return { name: null, email: angleMatch[1].trim() };
+  }
+  
+  // Plain email
+  return { name: null, email: input.trim() };
+};
+
+/**
  * Send email using Brevo HTTP API
  * @param {Object} options
  * @param {string} options.from - Sender email (must be verified in Brevo)
@@ -36,8 +61,14 @@ const sendMail = async ({ from, to, subject, html, text }) => {
     throw new Error('BREVO_API_KEY is not configured');
   }
 
-  const fromName = process.env.SMTP_FROM_NAME || 'GEIMS Complaint Portal';
-  const fromEmail = from || process.env.SMTP_FROM_EMAIL;
+  // Parse the from address (handles "Name <email>" format)
+  const parsed = parseEmailAddress(from);
+  const fromName = parsed.name || process.env.SMTP_FROM_NAME || 'GEIMS Complaint Portal';
+  const fromEmail = parsed.email || process.env.SMTP_FROM_EMAIL;
+
+  if (!fromEmail) {
+    throw new Error('valid sender email required');
+  }
 
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
