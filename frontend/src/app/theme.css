@@ -1,0 +1,24 @@
+:root {
+  /* Use these CSS variable “nicknames” everywhere instead of raw colors */
+  --color-footer-bg: 17 24 39; /* close to Tailwind gray-900 */
+  --color-footer-text: 255 255 255;
+  --color-footer-muted: 209 213 219; /* close to Tailwind gray-300 */
+  --color-footer-border: 55 65 81; /* close to Tailwind gray-700 */
+
+  --color-hero-bg: 10 30 66; /* dark blue (navbar + gradient start) */
+  --color-hero-bg-deep: 2 6 23; /* near-black deep blue (gradient end) */
+  --color-hero-text: 255 255 255;
+  --color-hero-texture: 255 255 255;
+  --color-hero-glow: 255 255 255;
+
+  --color-section-bg: 255 255 255;
+  --color-text-strong: 17 24 39; /* near gray-900 */
+  --color-text-muted: 55 65 81; /* near gray-700 */
+
+  --color-card-bg: 255 255 255;
+  --color-card-border: 229 231 235; /* near gray-200 */
+  --color-card-icon: 55 65 81; /* near gray-700 */
+
+  --color-accent-green: 22 163 74; /* near green-600 */
+  --color-on-accent: 255 255 255;
+}
