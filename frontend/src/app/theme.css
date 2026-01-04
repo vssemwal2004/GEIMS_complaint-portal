@@ -21,4 +21,7 @@
 
   --color-accent-green: 22 163 74; /* near green-600 */
   --color-on-accent: 255 255 255;
+
+  --color-panel-dark: 17 24 39; /* near gray-900 */
+  --color-panel-dark-muted: 209 213 219; /* near gray-300 */
 }

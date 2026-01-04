@@ -81,23 +81,16 @@ export default function HeroSection() {
   }, [activeIndex]);
 
   const slide = SLIDES[activeIndex];
-  const lines = slide.headingLines;
-  const delays = [0, 170, 340];
-  const directionForLine = (index) => (index % 2 === 0 ? "left" : "right");
-  const animationFor = (direction, currentPhase) => {
-    if (currentPhase === "entering") {
-      return direction === "left" ? "animate-heroLineInLeft" : "animate-heroLineInRight";
-    }
-    if (currentPhase === "exiting") {
-      return direction === "left" ? "animate-heroLineOutLeft" : "animate-heroLineOutRight";
-    }
-    return "";
-  };
-
-  const subheadingDirection = directionForLine(lines.length); // continues alternating pattern
+  const blockAnimation =
+    phase === "entering"
+      ? "animate-heroBlockInDown"
+      : phase === "exiting"
+        ? "animate-heroBlockOutUp"
+        : "";
 
   return (
     <section
+      id="hero"
       className="relative h-screen overflow-hidden text-[rgb(var(--color-hero-text))] bg-gradient-to-br from-[rgb(var(--color-hero-bg))] to-[rgb(var(--color-hero-bg-deep))]"
     >
       <div
@@ -125,36 +118,22 @@ export default function HeroSection() {
 
       <div className="relative z-20 flex h-full items-center">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-10 pt-20">
-          <div className="max-w-4xl">
+          <div key={activeIndex} className={"max-w-4xl will-change-transform " + blockAnimation}>
             <div
               className={[
                 headingFont.className,
                 "text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08]"
               ].join(" ")}
             >
-              {lines.map((line, index) => {
-                const direction = directionForLine(index);
-                const anim = animationFor(direction, phase);
-                return (
-                  <div
-                    key={`${activeIndex}-${index}`}
-                    className={["will-change-transform", anim].join(" ")}
-                    style={{ animationDelay: `${delays[index]}ms` }}
-                  >
-                    {line}
-                  </div>
-                );
-              })}
+              <div>{slide.headingLines[0]}</div>
+              <div>{slide.headingLines[1]}</div>
             </div>
 
             <p
               className={[
                 bodyFont.className,
-                "mt-6 text-base sm:text-lg md:text-xl font-medium text-white",
-                "will-change-transform",
-                animationFor(subheadingDirection, phase)
+                "mt-6 text-base sm:text-lg md:text-xl font-medium text-white"
               ].join(" ")}
-              style={{ animationDelay: `${delays[Math.min(lines.length, delays.length - 1)] + 180}ms` }}
             >
               {slide.subheading}
             </p>

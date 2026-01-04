@@ -67,7 +67,7 @@ export default function Footer() {
               </Link>
             </div>
             <div className="text-[rgb(var(--color-footer-muted))]">
-              © GEIMS ALL RIGHT RESERVER
+             © GEIMS. All Rights Reserved
             </div>
           </div>
         </div>
