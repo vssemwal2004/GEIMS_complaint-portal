@@ -37,10 +37,15 @@ const createTransporter = () => {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    // Connection timeout settings
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+    // Increased timeouts for cloud environments like Render
+    connectionTimeout: 60000,  // 60 seconds
+    greetingTimeout: 30000,    // 30 seconds
+    socketTimeout: 60000,      // 60 seconds
+    // TLS options for better compatibility
+    tls: {
+      rejectUnauthorized: true,
+      minVersion: 'TLSv1.2',
+    },
   });
 
   return transporter;
