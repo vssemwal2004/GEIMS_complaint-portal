@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import api from '../../services/api';
 import { FiUsers, FiMessageSquare, FiEye, FiClock, FiCheckCircle } from 'react-icons/fi';
 
@@ -142,7 +142,7 @@ const AdminDashboard = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Recent Complaints</h2>
             <Link 
-              to="/admin/complaints" 
+              href="/admin/complaints" 
               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               View All →
@@ -188,7 +188,7 @@ const AdminDashboard = () => {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Link
-          to="/admin/students"
+            href="/admin/students"
           className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow group"
         >
           <div className="flex items-center gap-4">
@@ -202,7 +202,7 @@ const AdminDashboard = () => {
           </div>
         </Link>
         <Link
-          to="/admin/complaints"
+          href="/admin/complaints"
           className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow group"
         >
           <div className="flex items-center gap-4">

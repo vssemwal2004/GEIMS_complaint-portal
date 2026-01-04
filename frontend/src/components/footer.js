@@ -1,6 +1,3 @@
-import Link from "next/link";
-import Image from "next/image";
-
 export default function Footer() {
   return (
     <footer className="border-t border-[rgb(var(--color-footer-border))]">
@@ -9,7 +6,7 @@ export default function Footer() {
           <div className="grid gap-10 md:grid-cols-3">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Image
+                <img
                   src="/geims-logo.png"
                   alt="GEIMS logo"
                   width={120}
@@ -56,15 +53,12 @@ export default function Footer() {
             className="mt-10 flex flex-col gap-3 border-t border-[rgb(var(--color-footer-border))] pt-6 text-sm md:flex-row md:items-center md:justify-between"
           >
             <div className="flex gap-4">
-              <Link href="/terms" className="underline-offset-4 hover:underline">
+              <span className="text-[rgb(var(--color-footer-text))] cursor-default">
                 Terms &amp; Conditions
-              </Link>
-              <Link
-                href="/privacy-policy"
-                className="underline-offset-4 hover:underline"
-              >
+              </span>
+              <span className="text-[rgb(var(--color-footer-text))] cursor-default">
                 Privacy Policy
-              </Link>
+              </span>
             </div>
             <div className="text-[rgb(var(--color-footer-muted))]">
              © GEIMS. All Rights Reserved

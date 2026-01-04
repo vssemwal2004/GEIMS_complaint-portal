@@ -4,6 +4,38 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Hero */
+  --color-hero-bg: 10 28 58;
+  --color-hero-bg-deep: 3 10 26;
+  --color-hero-text: 255 255 255;
+  --color-hero-texture: 255 255 255;
+
+  /* Global */
+  --color-section-bg: 248 250 252;
+  --color-text-strong: 15 23 42;
+  --color-text-muted: 71 85 105;
+
+  /* Cards */
+  --color-card-bg: 255 255 255;
+  --color-card-border: 226 232 240;
+  --color-card-icon: 100 116 139;
+
+  /* Accents */
+  --color-accent-green: 21 128 61;
+  --color-on-accent: 255 255 255;
+
+  /* Dark panel */
+  --color-panel-dark: 15 23 42;
+  --color-panel-dark-muted: 148 163 184;
+
+  /* Footer */
+  --color-footer-bg: 15 23 42;
+  --color-footer-text: 255 255 255;
+  --color-footer-muted: 148 163 184;
+  --color-footer-border: 30 41 59;
+}
+
 * {
   margin: 0;
   padding: 0;

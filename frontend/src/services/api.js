@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,9 +13,11 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Add auth token if available
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -24,26 +26,33 @@ api.interceptors.request.use(
   }
 );
 
+// Store navigation handler reference
+let navigationHandler = null;
+
+export const setNavigationHandler = (handler) => {
+  navigationHandler = handler;
+};
+
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Handle specific error codes
-    if (error.response) {
+    if (typeof window !== 'undefined' && error.response) {
       const { status, data } = error.response;
 
       // Unauthorized - redirect to login
       if (status === 401) {
         localStorage.removeItem('token');
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+        if (navigationHandler && window.location.pathname !== '/login') {
+          navigationHandler('/login');
         }
       }
 
       // Forbidden - handle password change requirement
       if (status === 403 && data.requirePasswordChange) {
-        if (window.location.pathname !== '/change-password') {
-          window.location.href = '/change-password';
+        if (navigationHandler && window.location.pathname !== '/change-password') {
+          navigationHandler('/change-password');
         }
       }
 

@@ -1,14 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import api from '../../services/api';
 import { 
-  FiMessageSquare, 
-  FiFilter, 
-  FiClock,
-  FiCheckCircle,
-  FiEye,
-  FiImage,
-  FiPlusCircle,
   FiX
 } from 'react-icons/fi';
 
@@ -52,30 +45,30 @@ const StudentComplaints = () => {
   };
 
   const StatusBadge = ({ status }) => {
-    const styles = {
-      READ: 'bg-blue-100 text-blue-800',
-      UNDER_REVIEW: 'bg-yellow-100 text-yellow-800',
-      RESOLVED: 'bg-green-100 text-green-800',
-    };
-
     const labels = {
       READ: 'Read',
       UNDER_REVIEW: 'Under Review',
       RESOLVED: 'Resolved',
     };
 
-    const icons = {
-      READ: FiEye,
-      UNDER_REVIEW: FiClock,
-      RESOLVED: FiCheckCircle,
+    const styles = {
+      READ: 'text-blue-700 bg-blue-50',
+      UNDER_REVIEW: 'text-yellow-700 bg-yellow-50',
+      RESOLVED: 'text-green-700 bg-green-50',
     };
 
-    const Icon = icons[status];
-
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${styles[status]}`}>
-        <Icon size={12} />
-        {labels[status]}
+      <span className={`inline-flex items-center gap-2 px-2.5 py-1 text-xs font-medium rounded-full ${styles[status]}`}>
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${
+            status === 'READ'
+              ? 'bg-blue-600'
+              : status === 'UNDER_REVIEW'
+                ? 'bg-yellow-600'
+                : 'bg-green-600'
+          }`}
+        />
+        <span>{labels[status]}</span>
       </span>
     );
   };
@@ -85,103 +78,59 @@ const StudentComplaints = () => {
     if (!selectedComplaint) return null;
 
     return (
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-screen px-4 py-6">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowDetailModal(false)} />
-          
-          <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto z-10">
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-100 p-6 z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-semibold text-gray-900">Complaint Details</h3>
-                  <StatusBadge status={selectedComplaint.status} />
-                </div>
-                <button onClick={() => setShowDetailModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <FiX size={24} />
-                </button>
+      <div className="fixed inset-0 z-50">
+        <div className="absolute inset-0 bg-black/40" onClick={() => setShowDetailModal(false)} />
+        <div className="relative flex items-center justify-center min-h-full p-4">
+          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-semibold text-gray-900">Complaint Details</h3>
+                <StatusBadge status={selectedComplaint.status} />
               </div>
+              <button
+                type="button"
+                onClick={() => setShowDetailModal(false)}
+                className="w-9 h-9 inline-flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-600"
+                aria-label="Close"
+              >
+                <FiX size={18} />
+              </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Complaint Content */}
+            <div className="px-4 py-4 space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Your Complaint</h4>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-gray-800 whitespace-pre-wrap">{selectedComplaint.content}</p>
+                <p className="text-xs text-gray-500">Submitted</p>
+                <p className="text-sm text-gray-900 mt-1">
+                  {new Date(selectedComplaint.createdAt).toLocaleString()}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">Complaint</p>
+                <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedComplaint.content}</p>
                 </div>
               </div>
 
-              {/* Image Attachment */}
               {selectedComplaint.imageUrl && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Attached Image</h4>
-                  <div className="border rounded-lg overflow-hidden">
+                  <p className="text-xs text-gray-500">Attachment</p>
+                  <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
                     <img
                       src={selectedComplaint.imageUrl}
                       alt="Complaint attachment"
-                      className="max-w-full h-auto max-h-80 object-contain mx-auto"
+                      className="w-full max-h-80 object-contain"
                     />
                   </div>
                 </div>
               )}
 
-              {/* Timestamps */}
-              <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-1">
-                  <FiClock />
-                  Submitted: {new Date(selectedComplaint.createdAt).toLocaleString()}
-                </div>
-                {selectedComplaint.resolvedAt && (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <FiCheckCircle />
-                    Resolved: {new Date(selectedComplaint.resolvedAt).toLocaleString()}
-                  </div>
-                )}
-              </div>
-
-              {/* Admin Acknowledgment */}
               {selectedComplaint.acknowledgment && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h4 className="text-sm font-medium text-green-700 mb-2 flex items-center gap-2">
-                    <FiCheckCircle />
-                    Admin Response
-                  </h4>
-                  <p className="text-green-800">{selectedComplaint.acknowledgment}</p>
-                  {selectedComplaint.resolvedBy && (
-                    <p className="text-xs text-green-600 mt-2">
-                      Responded by: {selectedComplaint.resolvedBy.name}
-                    </p>
-                  )}
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
+                  <p className="text-xs font-medium text-gray-700">Admin Response</p>
+                  <p className="text-sm text-gray-900 mt-2 whitespace-pre-wrap">{selectedComplaint.acknowledgment}</p>
                 </div>
               )}
-
-              {/* Status Info */}
-              {selectedComplaint.status !== 'RESOLVED' && (
-                <div className={`p-4 rounded-lg ${
-                  selectedComplaint.status === 'READ' 
-                    ? 'bg-blue-50 border border-blue-200' 
-                    : 'bg-yellow-50 border border-yellow-200'
-                }`}>
-                  <p className={`text-sm ${
-                    selectedComplaint.status === 'READ' ? 'text-blue-700' : 'text-yellow-700'
-                  }`}>
-                    {selectedComplaint.status === 'READ' 
-                      ? '✓ Your complaint has been received and read by the administration.'
-                      : '⏳ Your complaint is currently being reviewed by the administration.'}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="border-t p-6">
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="w-full px-4 py-2 gradient-primary text-white rounded-lg hover:opacity-90"
-              >
-                Close
-              </button>
             </div>
           </div>
         </div>
@@ -190,126 +139,151 @@ const StudentComplaints = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Complaints</h1>
-          <p className="text-gray-500 mt-1">Track status of your submitted complaints</p>
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">My Complaints</h1>
+            <p className="text-sm text-gray-600 mt-1">View and track submitted complaints</p>
+          </div>
+          <Link
+            href="/student/submit"
+            className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:opacity-90"
+          >
+            Submit
+          </Link>
         </div>
-        <Link
-          to="/student/submit"
-          className="inline-flex items-center gap-2 px-4 py-2 gradient-primary text-white rounded-lg hover:opacity-90"
-        >
-          <FiPlusCircle size={18} />
-          New Complaint
-        </Link>
+        <div className="h-px bg-gray-200 mt-4" />
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <FiFilter className="text-gray-400" />
-          <span className="text-sm text-gray-600">Filter:</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {['all', 'READ', 'UNDER_REVIEW', 'RESOLVED'].map((status) => (
+      {/* Status Tabs */}
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          {
+            key: 'all',
+            label: 'All',
+            idle: 'bg-primary-50/40 text-primary-800 border-primary-100',
+            active: 'bg-primary-50 text-primary-800 border-primary-300',
+          },
+          {
+            key: 'READ',
+            label: 'Read',
+            idle: 'bg-blue-50 text-blue-800 border-blue-100',
+            active: 'bg-blue-50 text-blue-800 border-blue-300',
+          },
+          {
+            key: 'UNDER_REVIEW',
+            label: 'Under Review',
+            idle: 'bg-yellow-50 text-yellow-800 border-yellow-100',
+            active: 'bg-yellow-50 text-yellow-800 border-yellow-300',
+          },
+          {
+            key: 'RESOLVED',
+            label: 'Resolved',
+            idle: 'bg-green-50 text-green-800 border-green-100',
+            active: 'bg-green-50 text-green-800 border-green-300',
+          },
+        ].map((item) => {
+          const isActive = statusFilter === item.key;
+          return (
             <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                statusFilter === status
-                  ? 'bg-primary-100 text-primary-700 font-medium'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              key={item.key}
+              type="button"
+              onClick={() => setStatusFilter(item.key)}
+              className={`min-w-0 px-2 py-1.5 sm:px-3 sm:py-2 rounded-full border text-[10px] sm:text-xs font-medium whitespace-nowrap ${
+                isActive ? item.active : item.idle
               }`}
+              title={item.label}
             >
-              {status === 'all' ? 'All' : status.replace('_', ' ')}
+              <span className="block truncate">{item.label}</span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      {/* Complaints List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600 mx-auto" />
           </div>
         ) : complaints.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <FiMessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg">No complaints found</p>
-            <p className="text-sm mt-1 mb-4">
-              {statusFilter !== 'all' ? `No ${statusFilter.replace('_', ' ').toLowerCase()} complaints` : 'You haven\'t submitted any complaints yet'}
-            </p>
-            <Link
-              to="/student/submit"
-              className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium"
-            >
-              <FiPlusCircle />
-              Submit your first complaint
-            </Link>
+          <div className="px-4 py-8">
+            <div className="border border-dashed border-gray-200 rounded-lg bg-white/70 px-4 py-6 text-center">
+              <p className="text-sm text-gray-700">No complaints found.</p>
+              <p className="text-xs text-gray-500 mt-1">Submit a complaint to track it here.</p>
+            </div>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {complaints.map((complaint) => (
-              <div 
-                key={complaint._id} 
-                className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
-                onClick={() => handleViewDetails(complaint)}
-              >
-                <div className="flex flex-col gap-3">
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="text-gray-900 line-clamp-2">
-                        {complaint.content.substring(0, 200)}
-                        {complaint.content.length > 200 && '...'}
-                      </p>
-                    </div>
+          <>
+            {/* Mobile list */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {complaints.map((complaint) => (
+                <button
+                  key={complaint._id}
+                  type="button"
+                  onClick={() => handleViewDetails(complaint)}
+                  className="w-full text-left px-4 py-3 hover:bg-white/60"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-gray-900 line-clamp-1">{complaint.content}</p>
                     <StatusBadge status={complaint.status} />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(complaint.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </button>
+              ))}
+            </div>
 
-                  {/* Meta Info */}
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <FiClock size={14} />
-                      {new Date(complaint.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </span>
-                    {complaint.imageUrl && (
-                      <span className="flex items-center gap-1 text-primary-600">
-                        <FiImage size={14} />
-                        Has attachment
-                      </span>
-                    )}
-                    {complaint.acknowledgment && (
-                      <span className="flex items-center gap-1 text-green-600">
-                        <FiCheckCircle size={14} />
-                        Response received
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Admin Response Preview */}
-                  {complaint.acknowledgment && (
-                    <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-                      <p className="text-xs font-medium text-green-700 mb-1">Admin Response:</p>
-                      <p className="text-sm text-green-800 line-clamp-2">{complaint.acknowledgment}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <table className="min-w-full text-sm">
+                <thead className="text-xs text-gray-600">
+                  <tr className="border-b border-gray-200 bg-white/60">
+                    <th className="text-left font-medium px-4 py-2">Date</th>
+                    <th className="text-left font-medium px-4 py-2">Status</th>
+                    <th className="text-left font-medium px-4 py-2">Complaint</th>
+                    <th className="text-left font-medium px-4 py-2">Attachment</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {complaints.map((complaint) => (
+                    <tr
+                      key={complaint._id}
+                      className="hover:bg-white/60 cursor-pointer"
+                      onClick={() => handleViewDetails(complaint)}
+                    >
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {new Date(complaint.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <StatusBadge status={complaint.status} />
+                      </td>
+                      <td className="px-4 py-3 text-gray-900">
+                        <span className="line-clamp-1">{complaint.content}</span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {complaint.imageUrl ? 'Yes' : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Pagination */}
         {pagination.pages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+          <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
               Page {pagination.current} of {pagination.pages} ({pagination.total} total)
             </p>
@@ -317,14 +291,14 @@ const StudentComplaints = () => {
               <button
                 onClick={() => handlePageChange(pagination.current - 1)}
                 disabled={pagination.current === 1}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
               >
                 Previous
               </button>
               <button
                 onClick={() => handlePageChange(pagination.current + 1)}
                 disabled={pagination.current === pagination.pages}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
               >
                 Next
               </button>

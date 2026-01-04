@@ -14,11 +14,15 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('token');
+  });
+  const [loading, setLoading] = useState(typeof window !== 'undefined');
 
   // Set token in API headers
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (token) {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       localStorage.setItem('token', token);
@@ -116,9 +120,16 @@ export const AuthProvider = ({ children }) => {
 
       return { success: false, message: response.data.message };
     } catch (error) {
-      const message = error.response?.data?.message || 
-                     error.response?.data?.errors?.[0]?.message ||
-                     'Failed to change password';
+      const data = error.response?.data;
+      const detailedMessage = Array.isArray(data?.errors) && data.errors.length > 0
+        ? data.errors[0].message
+        : null;
+
+      const message =
+        // Prefer specific validation reason over generic envelope message
+        ((data?.message === 'Validation failed' || data?.message === 'Invalid parameters') && detailedMessage)
+          ? detailedMessage
+          : (data?.message || detailedMessage || 'Failed to change password');
       toast.error(message);
       return { success: false, message };
     }

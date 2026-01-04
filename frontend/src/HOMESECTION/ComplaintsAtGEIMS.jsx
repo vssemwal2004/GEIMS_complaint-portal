@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 function CategoryCard({ title, description }) {
   return (
     <div className="flex flex-col items-center text-center">
@@ -47,13 +45,12 @@ export default function ComplaintsAtGEIMS() {
           {/* Center image */}
           <div className="order-1 lg:order-none">
             <div className="mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl border border-[rgb(var(--color-card-border))] bg-white">
-              <Image
+              <img
                 src="/geims-img3.jpg"
                 alt="GEIMS hospital building with Indian flag"
-                width={840}
-                height={1050}
                 className="h-auto w-full object-cover"
-                priority
+                loading="eager"
+                decoding="async"
               />
             </div>
           </div>
@@ -92,12 +89,15 @@ export default function ComplaintsAtGEIMS() {
         </div>
 
         <div className="mt-12 flex justify-center">
-          <a
-            href="#complaints"
-            className="rounded-full bg-[rgb(var(--color-accent-green))] px-6 py-3 text-sm font-semibold text-[rgb(var(--color-on-accent))]"
+          <button
+            onClick={() => {
+              const el = document.getElementById('complaints');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="rounded-full bg-[rgb(var(--color-accent-green))] px-6 py-3 text-sm font-semibold text-[rgb(var(--color-on-accent))] cursor-pointer"
           >
             VIEW ALL COMPLAINT CATEGORIES
-          </a>
+          </button>
         </div>
       </div>
     </section>

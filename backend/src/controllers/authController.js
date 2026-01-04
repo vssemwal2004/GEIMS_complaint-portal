@@ -13,8 +13,9 @@
 
 import User, { USER_ROLES } from '../models/User.js';
 import { generateToken } from '../middlewares/auth.js';
-import { sendPasswordChangedEmail } from '../services/emailService.js';
+import { sendPasswordChangedEmail, sendPasswordResetEmail } from '../services/emailService.js';
 import { asyncHandler, AuthenticationError, ValidationError } from '../middlewares/errorHandler.js';
+import crypto from 'crypto';
 
 /**
  * Login user (Admin or Student)
@@ -193,9 +194,87 @@ export const verifyToken = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Forgot password
+ * POST /api/auth/forgot-password
+ * Always returns a generic success message to prevent email enumeration.
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const genericResponse = {
+    success: true,
+    message: 'If an account exists for that email, a password reset link has been sent.',
+  };
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user || !user.isActive) {
+    return res.status(200).json(genericResponse);
+  }
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const expiresMinutes = 60;
+  const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
+
+  user.passwordResetTokenHash = tokenHash;
+  user.passwordResetExpires = expiresAt;
+  await user.save();
+
+  const frontendBaseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
+  const resetUrl = `${frontendBaseUrl.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
+
+  sendPasswordResetEmail({
+    email: user.email,
+    name: user.name,
+    resetUrl,
+    expiresMinutes,
+  }).catch((err) => console.error('Failed to send password reset email:', err));
+
+  return res.status(200).json(genericResponse);
+});
+
+/**
+ * Reset password via emailed token
+ * POST /api/auth/reset-password
+ */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+  const user = await User.findOne({
+    passwordResetTokenHash: tokenHash,
+    passwordResetExpires: { $gt: new Date() },
+  }).select('+passwordHash +passwordResetTokenHash +passwordResetExpires');
+
+  if (!user) {
+    throw new ValidationError('Reset link is invalid or has expired');
+  }
+
+  user.passwordHash = newPassword;
+  user.forcePasswordChange = false;
+  user.passwordResetTokenHash = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  // Optional confirmation
+  sendPasswordChangedEmail({
+    email: user.email,
+    name: user.name,
+  }).catch((err) => console.error('Failed to send password changed email:', err));
+
+  return res.status(200).json({
+    success: true,
+    message: 'Password reset successfully. Please login with your new password.',
+  });
+});
+
 export default {
   login,
   changePassword,
+  forgotPassword,
+  resetPassword,
   getMe,
   logout,
   verifyToken,

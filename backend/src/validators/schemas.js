@@ -32,27 +32,12 @@ const emailSchema = z
  * Password validation schema
  * Requirements:
  * - Minimum 8 characters
- * - At least one uppercase letter
- * - At least one lowercase letter
- * - At least one number
  * - At least one special character
  */
 const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
   .max(128, 'Password cannot exceed 128 characters')
-  .refine(
-    (val) => /[A-Z]/.test(val),
-    'Password must contain at least one uppercase letter'
-  )
-  .refine(
-    (val) => /[a-z]/.test(val),
-    'Password must contain at least one lowercase letter'
-  )
-  .refine(
-    (val) => /[0-9]/.test(val),
-    'Password must contain at least one number'
-  )
   .refine(
     (val) => /[!@#$%^&*(),.?":{}|<>]/.test(val),
     'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)'
@@ -71,6 +56,25 @@ export const loginSchema = z.object({
  */
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: passwordSchema,
+  confirmPassword: z.string().min(1, 'Confirm password is required'),
+}).strict().refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+/**
+ * Forgot password schema
+ */
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+}).strict();
+
+/**
+ * Reset password schema
+ */
+export const resetPasswordSchema = z.object({
+  token: z.string().min(10, 'Reset token is required'),
   newPassword: passwordSchema,
   confirmPassword: z.string().min(1, 'Confirm password is required'),
 }).strict().refine((data) => data.newPassword === data.confirmPassword, {
@@ -226,6 +230,8 @@ export const validateInput = (schema, data) => {
 export default {
   loginSchema,
   changePasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   createStudentSchema,
   csvStudentSchema,
   createComplaintSchema,

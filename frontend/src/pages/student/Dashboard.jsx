@@ -1,21 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { 
-  FiMessageSquare, 
-  FiEye, 
-  FiClock, 
-  FiCheckCircle, 
-  FiPlusCircle,
-  FiUser
-} from 'react-icons/fi';
+import { FiPlusCircle } from 'react-icons/fi';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [barsReady, setBarsReady] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,206 +35,362 @@ const StudentDashboard = () => {
     fetchData();
   }, []);
 
-  const StatCard = ({ icon: Icon, label, value, color, bgColor }) => (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{label}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
-        </div>
-        <div className={`p-3 rounded-lg ${bgColor}`}>
-          <Icon className={`w-6 h-6 ${color}`} />
-        </div>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    const id = setTimeout(() => setBarsReady(true), 50);
+    return () => clearTimeout(id);
+  }, []);
 
   const StatusBadge = ({ status }) => {
-    const styles = {
-      READ: 'bg-blue-100 text-blue-800',
-      UNDER_REVIEW: 'bg-yellow-100 text-yellow-800',
-      RESOLVED: 'bg-green-100 text-green-800',
-    };
-
     const labels = {
       READ: 'Read',
       UNDER_REVIEW: 'Under Review',
       RESOLVED: 'Resolved',
     };
 
+    const styles = {
+      READ: 'text-blue-700 bg-blue-50',
+      UNDER_REVIEW: 'text-yellow-700 bg-yellow-50',
+      RESOLVED: 'text-green-700 bg-green-50',
+    };
+
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status]}`}>
-        {labels[status]}
+      <span className={`inline-flex items-center gap-2 px-2.5 py-1 text-xs font-medium rounded-full ${styles[status]}`}>
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${
+            status === 'READ'
+              ? 'bg-blue-600'
+              : status === 'UNDER_REVIEW'
+                ? 'bg-yellow-600'
+                : 'bg-green-600'
+          }`}
+        />
+        <span>{labels[status]}</span>
       </span>
     );
   };
 
+  const totals = useMemo(() => {
+    const totalComplaints = stats?.totalComplaints || 0;
+    const read = stats?.byStatus?.read || 0;
+    const underReview = stats?.byStatus?.underReview || 0;
+    const resolved = stats?.byStatus?.resolved || 0;
+    return { totalComplaints, read, underReview, resolved };
+  }, [stats]);
+
+  const hasStats = !!stats;
+
+  const activity = useMemo(() => {
+    const mostRecentCreatedAt = recentComplaints.reduce((latest, complaint) => {
+      const createdAt = complaint?.createdAt ? new Date(complaint.createdAt) : null;
+      if (!createdAt || Number.isNaN(createdAt.getTime())) return latest;
+      if (!latest) return createdAt;
+      return createdAt > latest ? createdAt : latest;
+    }, null);
+
+    const mostRecentResolvedAt = recentComplaints.reduce((latest, complaint) => {
+      const resolvedAt = complaint?.resolvedAt ? new Date(complaint.resolvedAt) : null;
+      if (!resolvedAt || Number.isNaN(resolvedAt.getTime())) return latest;
+      if (!latest) return resolvedAt;
+      return resolvedAt > latest ? resolvedAt : latest;
+    }, null);
+
+    const recentStatusCounts = recentComplaints.reduce(
+      (acc, complaint) => {
+        const status = complaint?.status;
+        if (status === 'READ') acc.READ += 1;
+        if (status === 'UNDER_REVIEW') acc.UNDER_REVIEW += 1;
+        if (status === 'RESOLVED') acc.RESOLVED += 1;
+        return acc;
+      },
+      { READ: 0, UNDER_REVIEW: 0, RESOLVED: 0 }
+    );
+
+    return { mostRecentCreatedAt, mostRecentResolvedAt, recentStatusCounts };
+  }, [recentComplaints]);
+
+  const distribution = useMemo(() => {
+    const total = totals.totalComplaints || 0;
+    const safePct = (value) => {
+      if (!total) return 0;
+      return Math.round((value / total) * 100);
+    };
+    return {
+      readPct: safePct(totals.read),
+      underReviewPct: safePct(totals.underReview),
+      resolvedPct: safePct(totals.resolved),
+    };
+  }, [totals]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary-500 to-secondary-600 rounded-xl p-6 text-white">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Welcome back, {user?.name?.split(' ')[0]}!</h1>
-            <p className="text-primary-100 mt-1">
-              Track your complaints and submit new feedback
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-primary-50/40 border border-primary-100 rounded-xl px-4 py-4">
+        <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold leading-tight text-gray-900 flex items-baseline gap-2">
+            <span className="inline-flex items-baseline gap-2">
+              <span className="welcome-word welcome-word-0">Welcome</span>
+              <span className="welcome-word welcome-word-1">back</span>
+            </span>
+            <span className="text-primary-700 truncate">{user?.name}</span>
+          </h1>
+          <p className="text-sm text-gray-700 mt-1">Complaint dashboard summary</p>
+        </div>
+        <Link
+          href="/student/submit"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:opacity-90"
+        >
+          <FiPlusCircle size={16} />
+          Submit
+        </Link>
+        </div>
+        <div className="h-px bg-primary-100 mt-4" />
+      </div>
+
+      {/* Stats Cards (single row on all breakpoints) */}
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          {
+            label: 'Total',
+            value: totals.totalComplaints,
+            bg: 'bg-primary-50/40',
+            accent: 'border-primary-400',
+          },
+          { label: 'Read', value: totals.read, bg: 'bg-blue-50', accent: 'border-blue-500' },
+          {
+            label: 'Under Review',
+            value: totals.underReview,
+            bg: 'bg-yellow-50',
+            accent: 'border-yellow-500',
+          },
+          { label: 'Resolved', value: totals.resolved, bg: 'bg-green-50', accent: 'border-green-600' },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className={`min-w-0 border border-gray-200 rounded-xl px-2.5 py-3 sm:px-4 sm:py-4 shadow-sm ${item.bg} border-t-4 ${item.accent}`}
+          >
+            <p className="text-[11px] sm:text-xs text-gray-700 truncate" title={item.label}>
+              {item.label}
+            </p>
+            <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1 leading-none">
+              {hasStats ? item.value : '—'}
             </p>
           </div>
-          <Link
-            to="/student/submit"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary-600 font-medium rounded-lg hover:bg-primary-50 transition-colors"
-          >
-            <FiPlusCircle size={20} />
-            Submit New Complaint
-          </Link>
-        </div>
+        ))}
       </div>
 
-      {/* Profile Card */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center">
-            <FiUser className="w-8 h-8 text-primary-600" />
+      {/* Complaint Overview / Activity Summary (complaint-only) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-primary-50/30 border border-gray-200 rounded-xl">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900">Activity Summary</h2>
+            <p className="text-xs text-gray-600 mt-0.5">Based on your most recent complaints</p>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{user?.name}</h3>
-            <p className="text-gray-500">{user?.email}</p>
-            <p className="text-sm text-gray-400">{user?.college}</p>
+          <div className="px-4 py-4 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">Last submitted</p>
+                <p className="text-sm text-gray-900 mt-1 truncate">
+                  {activity.mostRecentCreatedAt
+                    ? activity.mostRecentCreatedAt.toLocaleString()
+                    : '—'}
+                </p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">Last resolved</p>
+                <p className="text-sm text-gray-900 mt-1 truncate">
+                  {activity.mostRecentResolvedAt
+                    ? activity.mostRecentResolvedAt.toLocaleString()
+                    : '—'}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500">Recent statuses (last {recentComplaints.length})</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                  Read: {activity.recentStatusCounts.READ}
+                </span>
+                <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-600" />
+                  Under Review: {activity.recentStatusCounts.UNDER_REVIEW}
+                </span>
+                <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
+                  Resolved: {activity.recentStatusCounts.RESOLVED}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          icon={FiMessageSquare}
-          label="Total Complaints"
-          value={stats?.totalComplaints || 0}
-          color="text-primary-600"
-          bgColor="bg-primary-50"
-        />
-        <StatCard
-          icon={FiEye}
-          label="Read"
-          value={stats?.byStatus?.read || 0}
-          color="text-blue-600"
-          bgColor="bg-blue-50"
-        />
-        <StatCard
-          icon={FiClock}
-          label="Under Review"
-          value={stats?.byStatus?.underReview || 0}
-          color="text-yellow-600"
-          bgColor="bg-yellow-50"
-        />
-        <StatCard
-          icon={FiCheckCircle}
-          label="Resolved"
-          value={stats?.byStatus?.resolved || 0}
-          color="text-green-600"
-          bgColor="bg-green-50"
-        />
+        <div className="bg-white border border-gray-200 rounded-xl">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900">Complaint Overview</h2>
+            <p className="text-xs text-gray-600 mt-0.5">Overall status distribution</p>
+          </div>
+          <div className="px-4 py-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-700">Read</p>
+              <p className="text-sm text-gray-900 font-medium">
+                {hasStats ? totals.read : '—'} ({distribution.readPct}%)
+              </p>
+            </div>
+            <div className="h-2 rounded-full bg-blue-100 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-[width] duration-700 ease-out"
+                style={{ width: `${barsReady ? distribution.readPct : 0}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-700">Under Review</p>
+              <p className="text-sm text-gray-900 font-medium">
+                {hasStats ? totals.underReview : '—'} ({distribution.underReviewPct}%)
+              </p>
+            </div>
+            <div className="h-2 rounded-full bg-yellow-100 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 transition-[width] duration-700 ease-out"
+                style={{ width: `${barsReady ? distribution.underReviewPct : 0}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-700">Resolved</p>
+              <p className="text-sm text-gray-900 font-medium">
+                {hasStats ? totals.resolved : '—'} ({distribution.resolvedPct}%)
+              </p>
+            </div>
+            <div className="h-2 rounded-full bg-green-100 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-[width] duration-700 ease-out"
+                style={{ width: `${barsReady ? distribution.resolvedPct : 0}%` }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Recent Complaints */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Complaints</h2>
-            <Link 
-              to="/student/complaints" 
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
-              View All →
-            </Link>
+      <div className="bg-white border border-gray-200 rounded-xl">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Recent Complaints</h2>
+            <p className="text-xs text-gray-600 mt-0.5">Latest submissions and their current status</p>
           </div>
+          <Link href="/student/complaints" className="text-sm text-gray-600 hover:text-primary-800 font-medium">
+            View all
+          </Link>
         </div>
-        <div className="divide-y divide-gray-100">
-          {recentComplaints.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <FiMessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>No complaints submitted yet</p>
-              <Link
-                to="/student/submit"
-                className="mt-4 inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium"
-              >
-                <FiPlusCircle />
-                Submit your first complaint
-              </Link>
+
+        {recentComplaints.length === 0 ? (
+          <div className="px-4 py-8">
+            <div className="border border-dashed border-gray-200 rounded-lg bg-gray-50 px-4 py-6 text-center">
+              <p className="text-sm text-gray-700">No complaints yet.</p>
+              <p className="text-xs text-gray-500 mt-1">Submit a complaint to see updates and activity here.</p>
             </div>
-          ) : (
-            recentComplaints.map((complaint) => (
-              <div key={complaint._id} className="p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 line-clamp-2">
-                      {complaint.content.substring(0, 150)}...
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      {new Date(complaint.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0">
+          </div>
+        ) : (
+          <>
+            <div className="md:hidden divide-y divide-gray-100">
+              {recentComplaints.map((complaint) => (
+                <div key={complaint._id} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-gray-900 line-clamp-1">{complaint.content}</p>
                     <StatusBadge status={complaint.status} />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(complaint.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </p>
                 </div>
-                {complaint.status === 'RESOLVED' && complaint.acknowledgment && (
-                  <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-100">
-                    <p className="text-xs font-medium text-green-700 mb-1">Admin Response:</p>
-                    <p className="text-sm text-green-800">{complaint.acknowledgment}</p>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="text-xs text-gray-500">
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left font-medium px-4 py-2">Date</th>
+                    <th className="text-left font-medium px-4 py-2">Status</th>
+                    <th className="text-left font-medium px-4 py-2">Complaint</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {recentComplaints.map((complaint) => (
+                    <tr key={complaint._id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {new Date(complaint.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <StatusBadge status={complaint.status} />
+                      </td>
+                      <td className="px-4 py-3 text-gray-900">
+                        <span className="line-clamp-1">{complaint.content}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link
-          to="/student/submit"
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary-50 rounded-lg group-hover:bg-primary-100 transition-colors">
-              <FiPlusCircle className="w-6 h-6 text-primary-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Submit Complaint</h3>
-              <p className="text-sm text-gray-500">Report an issue or provide feedback</p>
-            </div>
-          </div>
-        </Link>
-        <Link
-          to="/student/complaints"
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors">
-              <FiMessageSquare className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">View All Complaints</h3>
-              <p className="text-sm text-gray-500">Track status of your submissions</p>
-            </div>
-          </div>
-        </Link>
-      </div>
+      <style jsx>{`
+        .welcome-word {
+          display: inline-block;
+          opacity: 0;
+          transform: translateX(-8px);
+          animation: welcomeReveal 5s ease-in-out infinite;
+          will-change: opacity, transform;
+        }
+
+        .welcome-word-0 {
+          animation-delay: 0s;
+        }
+
+        .welcome-word-1 {
+          animation-delay: 0.25s;
+        }
+
+        @keyframes welcomeReveal {
+          0% {
+            opacity: 0;
+            transform: translateX(-8px);
+          }
+          12% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          88% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };

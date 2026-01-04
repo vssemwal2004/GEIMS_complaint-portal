@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Footer from "./footer";
+import FooterModule from "./footer";
+
+const Footer = FooterModule?.default ?? FooterModule;
 
 const TRANSITION_MS = 600;
 

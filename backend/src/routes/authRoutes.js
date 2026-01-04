@@ -13,9 +13,9 @@
 import express from 'express';
 import authController from '../controllers/authController.js';
 import { authenticate } from '../middlewares/auth.js';
-import { loginLimiter } from '../middlewares/rateLimiter.js';
+import { loginLimiter, passwordResetLimiter } from '../middlewares/rateLimiter.js';
 import { validateBody } from '../middlewares/validate.js';
-import { loginSchema, changePasswordSchema } from '../validators/schemas.js';
+import { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/schemas.js';
 
 const router = express.Router();
 
@@ -41,6 +41,30 @@ router.post(
   authenticate,
   validateBody(changePasswordSchema),
   authController.changePassword
+);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request a password reset link
+ * @access  Public (rate limited)
+ */
+router.post(
+  '/forgot-password',
+  passwordResetLimiter,
+  validateBody(forgotPasswordSchema),
+  authController.forgotPassword
+);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password using emailed token
+ * @access  Public (rate limited)
+ */
+router.post(
+  '/reset-password',
+  passwordResetLimiter,
+  validateBody(resetPasswordSchema),
+  authController.resetPassword
 );
 
 /**

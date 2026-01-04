@@ -1,10 +1,9 @@
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/router';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
   FiSend, 
-  FiImage, 
   FiX, 
   FiAlertCircle,
   FiCheck,
@@ -12,7 +11,7 @@ import {
 } from 'react-icons/fi';
 
 const SubmitComplaint = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const fileInputRef = useRef(null);
   
   const [content, setContent] = useState('');
@@ -98,7 +97,7 @@ const SubmitComplaint = () => {
 
       if (response.data.success) {
         toast.success('Complaint submitted successfully!');
-        navigate('/student/complaints');
+        router.push('/student/complaints');
       }
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to submit complaint';
@@ -119,159 +118,149 @@ const SubmitComplaint = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-fadeIn">
-      {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Submit Complaint</h1>
-        <p className="text-gray-500 mt-1">
-          Share your concerns, feedback, or suggestions with the administration
-        </p>
+    <div className="max-w-screen-xl mx-auto">
+      <div className="mb-6 pb-4 border-b border-gray-200">
+        <h1 className="text-xl font-semibold text-gray-900">Submit Complaint</h1>
+        <p className="text-sm text-gray-600 mt-1">Share your concern with the administration.</p>
       </div>
 
-      {/* Form Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Content Textarea */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Complaint / Feedback Details <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={10}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 resize-none ${
-                errors.content ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Please describe your complaint, feedback, or suggestion in detail. Be specific about the issue, when and where it occurred, and any relevant information that could help address your concern..."
-              required
-            />
-            
-            {/* Word Count */}
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-2">
-                {errors.content ? (
-                  <span className="text-red-500 text-sm flex items-center gap-1">
-                    <FiAlertCircle />
-                    {errors.content}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Content Textarea */}
+            <div className="lg:col-span-8">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <label className="block text-sm font-medium text-gray-800 mb-2">
+                  Complaint Details <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows={14}
+                  className={`w-full px-3 py-3 border rounded-lg bg-white resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder:text-gray-400 ${
+                    errors.content ? 'border-red-500' : 'border-gray-200'
+                  }`}
+                  placeholder="Describe what happened, when/where it occurred, and any details that can help the administration address it."
+                  required
+                />
+
+                {/* Word Count */}
+                <div className="flex items-center justify-between mt-2">
+                  <div className="min-w-0">
+                    {errors.content ? (
+                      <span className="text-red-600 text-xs flex items-center gap-1">
+                        <FiAlertCircle />
+                        <span className="truncate">{errors.content}</span>
+                      </span>
+                    ) : isWordCountValid ? (
+                      <span className="text-green-700 text-xs flex items-center gap-1">
+                        <FiCheck />
+                        Ready
+                      </span>
+                    ) : (
+                      <span className="text-gray-600 text-xs">Minimum {minWords} words</span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs text-right ${
+                      wordCount < minWords
+                        ? 'text-red-600'
+                        : wordCount > maxWords
+                          ? 'text-red-600'
+                          : 'text-gray-500'
+                    }`}
+                  >
+                    {wordCount} / {maxWords}
                   </span>
-                ) : isWordCountValid ? (
-                  <span className="text-green-600 text-sm flex items-center gap-1">
-                    <FiCheck />
-                    Word count valid
-                  </span>
-                ) : (
-                  <span className="text-gray-500 text-sm">
-                    Minimum {minWords} words required
-                  </span>
-                )}
+                </div>
               </div>
-              <span className={`text-sm ${
-                wordCount < minWords ? 'text-red-500' : 
-                wordCount > maxWords ? 'text-red-500' : 'text-gray-500'
-              }`}>
-                {wordCount} / {maxWords} words
-              </span>
+            </div>
+
+            <div className="lg:col-span-4 space-y-4">
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Attach Image (Optional)
+                </label>
+
+                {!imagePreview ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer bg-gray-50 hover:bg-gray-100/50"
+                  >
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-600">
+                      <FiUpload />
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 mt-3">Upload an image</p>
+                    <p className="text-xs text-gray-500 mt-1">JPG / JPEG / PNG (max 5MB)</p>
+                  </div>
+                ) : (
+                  <div className="relative border border-gray-200 rounded-lg overflow-hidden">
+                    <img src={imagePreview} alt="Preview" className="w-full h-56 object-contain bg-gray-50" />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 w-9 h-9 inline-flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                    >
+                      <FiX size={16} />
+                    </button>
+                    <div className="p-3 bg-gray-50 border-t border-gray-200">
+                      <p className="text-sm text-gray-600 truncate">{image?.name}</p>
+                      <p className="text-xs text-gray-400">{(image?.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                  </div>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Guidelines */}
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
+                <p className="text-xs font-medium text-gray-700">Guidelines</p>
+                <p className="text-xs text-gray-600 mt-2">
+                  Keep it respectful. Minimum {minWords} words. Add an image only if it supports your complaint.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Image Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attach Image (Optional)
-            </label>
-            
-            {!imagePreview ? (
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors"
-              >
-                <FiUpload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-600 mb-1">
-                  Click to upload an image
-                </p>
-                <p className="text-xs text-gray-400">
-                  JPG, JPEG, PNG (max 5MB)
-                </p>
-              </div>
-            ) : (
-              <div className="relative border rounded-lg overflow-hidden">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-64 object-contain bg-gray-50"
-                />
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                >
-                  <FiX size={16} />
-                </button>
-                <div className="p-3 bg-gray-50 border-t">
-                  <p className="text-sm text-gray-600 truncate">
-                    {image?.name}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {(image?.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".jpg,.jpeg,.png"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-          </div>
-
-          {/* Guidelines */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-700 mb-2 flex items-center gap-2">
-              <FiAlertCircle />
-              Submission Guidelines
-            </h4>
-            <ul className="text-sm text-blue-600 space-y-1">
-              <li>• Be clear and specific about your concern</li>
-              <li>• Include relevant dates, times, and locations</li>
-              <li>• Attach supporting images if applicable</li>
-              <li>• Content must be between {minWords} and {maxWords} words</li>
-              <li>• Maintain respectful and professional language</li>
-            </ul>
-          </div>
-
           {/* Submit Button */}
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/student')}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !isWordCountValid}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 gradient-primary text-white font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <FiSend />
-                  Submit Complaint
-                </>
-              )}
-            </button>
+          <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-gray-200 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => router.push('/student')}
+                className="w-full sm:w-auto px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !isWordCountValid}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <FiSend />
+                    Submit
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

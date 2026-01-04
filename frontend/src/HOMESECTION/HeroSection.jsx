@@ -105,17 +105,6 @@ export default function HeroSection() {
         }}
       />
 
-      {/* Soft white fading overlay during text transitions */}
-      <div
-        aria-hidden="true"
-        key={fadeKey}
-        className={
-          nextIndex === null
-            ? "absolute inset-0 z-10 pointer-events-none opacity-0"
-            : "absolute inset-0 z-10 pointer-events-none bg-white animate-heroBgFade"
-        }
-      />
-
       <div className="relative z-20 flex h-full items-center">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-10 pt-20">
           <div key={activeIndex} className={"max-w-4xl will-change-transform " + blockAnimation}>

@@ -1,4 +1,5 @@
 import { Merriweather, Plus_Jakarta_Sans } from "next/font/google";
+import Link from "next/link";
 
 const headingFont = Merriweather({
   subsets: ["latin"],
@@ -67,17 +68,17 @@ export default function ComplaintsInfoSection() {
             </ul>
 
             <div className="mt-10">
-              <a
-                href="#complaints"
+              <Link
+                href="/login"
                 className={[
                   bodyFont.className,
-                  "inline-flex items-center justify-center rounded-full",
+                  "inline-flex items-center justify-center rounded-full cursor-pointer",
                   "bg-[rgb(var(--color-accent-green))] px-6 py-3",
                   "text-sm font-semibold text-[rgb(var(--color-on-accent))]"
                 ].join(" ")}
               >
-                Submit a Complaint
-              </a>
+                Write a Complaint
+              </Link>
             </div>
           </div>
 

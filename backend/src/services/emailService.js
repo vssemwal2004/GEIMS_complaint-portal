@@ -202,6 +202,60 @@ export const sendPasswordChangedEmail = async ({ email, name }) => {
 };
 
 /**
+ * Send password reset email with secure reset link
+ * @param {Object} params
+ * @param {string} params.email - User email
+ * @param {string} params.name - User name
+ * @param {string} params.resetUrl - Password reset URL
+ * @param {number} [params.expiresMinutes=60] - Expiration time for the link
+ * @returns {Promise<Object>}
+ */
+export const sendPasswordResetEmail = async ({ email, name, resetUrl, expiresMinutes = 60 }) => {
+  const subject = 'Reset Your Password - GEIMS Complaint Portal';
+
+  const body = `
+    <h2>Password Reset Request</h2>
+
+    <p>Hello ${escapeHtml(name || '') || 'there'},</p>
+
+    <p>We received a request to reset the password for your GEIMS Complaint Portal account.</p>
+
+    <div class="info-box">
+      <p><strong>Reset link expires in:</strong> ${escapeHtml(String(expiresMinutes))} minutes</p>
+    </div>
+
+    <p>
+      <a class="button" href="${escapeHtml(resetUrl)}">Reset Password</a>
+    </p>
+
+    <p style="font-size: 13px; color: #666; margin-top: 16px;">
+      If the button doesn't work, copy and paste this link into your browser:
+      <br />
+      <span style="word-break: break-all;">${escapeHtml(resetUrl)}</span>
+    </p>
+
+    <p class="warning">If you did not request a password reset, you can safely ignore this email.</p>
+  `;
+
+  const html = emailWrapper(subject, body);
+
+  try {
+    const info = await transporter.sendMail({
+      from: getFromAddress(),
+      to: email,
+      subject,
+      html,
+    });
+
+    console.log(`✅ Password reset email sent to ${email}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`❌ Failed to send password reset email to ${email}:`, error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Send complaint resolved acknowledgment email
  * @param {Object} params
  * @param {string} params.email - Student email
