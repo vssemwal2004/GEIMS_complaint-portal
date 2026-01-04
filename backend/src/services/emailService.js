@@ -32,23 +32,75 @@ const escapeHtml = (text) => {
   return validator.escape(String(text || ''));
 };
 
+const getFrontendBaseUrl = () => {
+  const url =
+    process.env.FRONTEND_BASE_URL ||
+    process.env.FRONTEND_URL ||
+    process.env.APP_URL ||
+    process.env.PUBLIC_URL ||
+    '';
+  return String(url || '').trim();
+};
+
+const getLogoUrl = () => {
+  // Default logo (provided by user) – reliable absolute URL for email clients
+  const defaultLogoUrl = 'https://geims.geu.ac.in/wp-content/uploads/2023/11/logo-1.png';
+
+  // Prefer an explicit public logo URL for emails (best reliability across clients)
+  const explicitLogoUrl = (process.env.EMAIL_LOGO_URL || process.env.MAIL_LOGO_URL || '').trim();
+  if (explicitLogoUrl) return explicitLogoUrl;
+
+  if (defaultLogoUrl) return defaultLogoUrl;
+
+  const baseUrl = getFrontendBaseUrl();
+  if (!baseUrl) return '';
+  return `${baseUrl.replace(/\/$/, '')}/geims-logo.png`;
+};
+
+const buildLogoBlock = ({ src }) => {
+  if (!src) return '';
+
+  // Use a wider logo for better brand visibility in email headers.
+  // Keep inline styles for maximum email-client compatibility.
+  return `
+    <img
+      src="${escapeHtml(src)}"
+      alt="GEIMS"
+      width="160"
+      height="48"
+      style="width:160px;height:48px;object-fit:contain;display:block;"
+    />
+  `;
+};
+
 /**
  * Base email styles for consistent branding
  */
 const emailStyles = `
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-    .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
-    .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 10px 10px; }
-    .button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
-    .info-box { background: #f0f4ff; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #667eea; }
-    .warning { color: #dc3545; font-weight: bold; }
-    .success { color: #28a745; font-weight: bold; }
-    h1 { margin: 0; font-size: 24px; }
-    h2 { color: #667eea; }
-    .credentials { background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; }
+    /* Keep styles simple for broad email-client support */
+    body { margin: 0; padding: 0; background: #f6f7f9; }
+    table { border-collapse: collapse; }
+    img { border: 0; outline: none; text-decoration: none; display: block; }
+    a { color: #16a34a; }
+    .container { width: 100%; background: #f6f7f9; padding: 24px 0; }
+    .card { width: 100%; max-width: 600px; background: #ffffff; border: 1px solid #e7e9ee; border-radius: 14px; overflow: hidden; }
+    .header { padding: 20px 24px; background: #ffffff; border-bottom: 1px solid #eef0f4; }
+    .brand { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; color: #0f172a; font-weight: 700; }
+    .content { padding: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #0f172a; line-height: 1.6; }
+    .muted { color: #64748b; font-size: 13px; }
+    .title { font-size: 20px; font-weight: 800; margin: 0 0 6px 0; color: #0f172a; }
+    .subtitle { margin: 0 0 18px 0; color: #475569; font-size: 14px; }
+    .divider { height: 1px; background: #eef0f4; margin: 18px 0; }
+    .button { display: inline-block; padding: 12px 18px; background: #16a34a; color: #ffffff !important; text-decoration: none; border-radius: 10px; font-weight: 800; }
+    .info { background: #f0fdf4; border: 1px solid #dcfce7; border-left: 4px solid #16a34a; padding: 12px 14px; border-radius: 10px; }
+    .warning { color: #b91c1c; font-weight: 700; }
+    .success { color: #16a34a; font-weight: 700; }
+    .credentials { background: #f8fafc; border: 1px solid #eef0f4; padding: 12px 14px; border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 13px; }
+    /* Backwards-compatible class for older templates */
+    .info-box { background: #f0fdf4; border: 1px solid #dcfce7; border-left: 4px solid #16a34a; padding: 12px 14px; border-radius: 10px; }
+    .footer { padding: 16px 24px 22px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #64748b; text-align: center; }
+    .preheader { display: none !important; visibility: hidden; opacity: 0; color: transparent; height: 0; width: 0; overflow: hidden; mso-hide: all; }
   </style>
 `;
 
@@ -58,32 +110,82 @@ const emailStyles = `
  * @param {string} body
  * @returns {string}
  */
-const emailWrapper = (title, body) => `
+const emailWrapper = (title, body, { preheader = '', logoSrc = '' } = {}) => {
+  const year = new Date().getFullYear();
+
+  return `
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(title)}</title>
-  ${emailStyles}
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>🎓 GEIMS Complaint Portal</h1>
-    </div>
-    <div class="content">
-      ${body}
-    </div>
-    <div class="footer">
-      <p>This is an automated email from GEIMS Complaint Portal.</p>
-      <p>Please do not reply to this email.</p>
-      <p>© ${new Date().getFullYear()} GEIMS. All rights reserved.</p>
-    </div>
-  </div>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${escapeHtml(title)}</title>
+    ${emailStyles}
+  </head>
+  <body>
+    <span class="preheader">${escapeHtml(preheader)}</span>
+    <table role="presentation" width="100%" class="container">
+      <tr>
+        <td align="center">
+          <table role="presentation" class="card">
+            <tr>
+              <td class="header">
+                <table role="presentation" width="100%">
+                  <tr>
+                    <td align="left" valign="middle">
+                      ${buildLogoBlock({ src: logoSrc })}
+                    </td>
+                    <td align="left" valign="middle" style="padding-left: 12px;">
+                      <div class="brand">GEIMS Complaint Portal</div>
+                      <div class="muted">Graphic Era Institute of Medical Sciences</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="content">${body}</td>
+            </tr>
+            <tr>
+              <td class="footer">
+                <div>This is an automated email. Please do not reply.</div>
+                <div style="margin-top: 6px;">© ${year} GEIMS. All rights reserved.</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>
 `;
+};
+
+const buildEmail = ({ subject, body, preheader, text }) => {
+  const logoUrl = getLogoUrl();
+
+  // IMPORTANT: Do not attach/embed the logo as an email attachment.
+  // Some clients (e.g., Gmail) show inline CID images as downloadable attachments.
+  // We only reference a public URL in the HTML.
+  return {
+    html: emailWrapper(subject, body, { preheader, logoSrc: logoUrl }),
+    attachments: [],
+    text,
+  };
+};
+
+const sendBrandedMail = async ({ to, subject, body, preheader, text }) => {
+  const email = buildEmail({ subject, body, preheader, text });
+
+  return transporter.sendMail({
+    from: getFromAddress(),
+    to,
+    subject,
+    html: email.html,
+    text: email.text,
+    attachments: [],
+  });
+};
 
 /**
  * Send account creation email to new student
@@ -134,14 +236,12 @@ export const sendAccountCreatedEmail = async ({ email, name, temporaryPassword, 
     <p>If you have any questions, please contact your administrator.</p>
   `;
   
-  const html = emailWrapper(subject, body);
-  
   try {
-    const info = await transporter.sendMail({
-      from: getFromAddress(),
+    const info = await sendBrandedMail({
       to: email,
       subject,
-      html,
+      body,
+      preheader: 'Your GEIMS Complaint Portal account is ready. Temporary password inside.',
     });
     
     console.log(`✅ Account created email sent to ${email}`);
@@ -183,14 +283,12 @@ export const sendPasswordChangedEmail = async ({ email, name }) => {
     </ul>
   `;
   
-  const html = emailWrapper(subject, body);
-  
   try {
-    const info = await transporter.sendMail({
-      from: getFromAddress(),
+    const info = await sendBrandedMail({
       to: email,
       subject,
-      html,
+      body,
+      preheader: 'Your GEIMS Complaint Portal password was changed.',
     });
     
     console.log(`✅ Password changed email sent to ${email}`);
@@ -214,37 +312,53 @@ export const sendPasswordResetEmail = async ({ email, name, resetUrl, expiresMin
   const subject = 'Reset Your Password - GEIMS Complaint Portal';
 
   const body = `
-    <h2>Password Reset Request</h2>
+    <h2 class="title">Reset your password</h2>
+    <p class="subtitle">Use the button below to set a new password for your account.</p>
 
     <p>Hello ${escapeHtml(name || '') || 'there'},</p>
-
     <p>We received a request to reset the password for your GEIMS Complaint Portal account.</p>
 
-    <div class="info-box">
-      <p><strong>Reset link expires in:</strong> ${escapeHtml(String(expiresMinutes))} minutes</p>
+    <div class="info">
+      <strong>Reset link expires in:</strong> ${escapeHtml(String(expiresMinutes))} minutes
     </div>
 
-    <p>
+    <div class="divider"></div>
+
+    <p style="margin: 0 0 16px 0;">
       <a class="button" href="${escapeHtml(resetUrl)}">Reset Password</a>
     </p>
 
-    <p style="font-size: 13px; color: #666; margin-top: 16px;">
+    <p class="muted" style="margin: 0;">
       If the button doesn't work, copy and paste this link into your browser:
-      <br />
-      <span style="word-break: break-all;">${escapeHtml(resetUrl)}</span>
     </p>
+    <p class="muted" style="margin: 8px 0 0 0; word-break: break-all;">${escapeHtml(resetUrl)}</p>
 
-    <p class="warning">If you did not request a password reset, you can safely ignore this email.</p>
+    <div class="divider"></div>
+    <p class="warning" style="margin: 0;">
+      If you did not request a password reset, you can safely ignore this email.
+    </p>
   `;
 
-  const html = emailWrapper(subject, body);
+  const text = [
+    'Reset your password',
+    '',
+    `Hello ${name || 'there'},`,
+    '',
+    'We received a request to reset the password for your GEIMS Complaint Portal account.',
+    `This link expires in ${expiresMinutes} minutes.`,
+    '',
+    `Reset link: ${resetUrl}`,
+    '',
+    'If you did not request a password reset, you can safely ignore this email.',
+  ].join('\n');
 
   try {
-    const info = await transporter.sendMail({
-      from: getFromAddress(),
+    const info = await sendBrandedMail({
       to: email,
       subject,
-      html,
+      body,
+      preheader: 'Password reset requested. Link expires soon.',
+      text,
     });
 
     console.log(`✅ Password reset email sent to ${email}`);
@@ -269,38 +383,50 @@ export const sendComplaintResolvedEmail = async ({ email, name, complaintId, ack
   const subject = 'Your Complaint Has Been Resolved - GEIMS Complaint Portal';
   
   const body = `
-    <h2>Complaint Resolved 🎉</h2>
-    
+    <h2 class="title">Complaint resolved</h2>
+    <p class="subtitle">The administration has resolved your complaint.</p>
+
     <p>Hello ${escapeHtml(name)},</p>
-    
-    <p>Great news! Your complaint has been reviewed and resolved by the administration.</p>
-    
-    <div class="info-box">
-      <h3>📋 Complaint Details</h3>
-      <p><strong>Complaint ID:</strong> ${escapeHtml(complaintId)}</p>
-      <p><strong>Submitted:</strong> ${new Date(submittedAt).toLocaleString()}</p>
-      <p><strong>Resolved:</strong> ${new Date().toLocaleString()}</p>
+    <p>Your complaint has been reviewed and marked as <span class="success">Resolved</span>.</p>
+
+    <div class="info">
+      <div><strong>Complaint ID:</strong> ${escapeHtml(complaintId)}</div>
+      <div><strong>Submitted:</strong> ${escapeHtml(new Date(submittedAt).toLocaleString())}</div>
+      <div><strong>Resolved:</strong> ${escapeHtml(new Date().toLocaleString())}</div>
     </div>
-    
-    <div class="info-box" style="border-left-color: #28a745;">
-      <h3>✅ Admin Response</h3>
-      <p>${escapeHtml(acknowledgment)}</p>
+
+    <div class="divider"></div>
+
+    <div class="info">
+      <div><strong>Admin response</strong></div>
+      <div style="margin-top: 6px;">${escapeHtml(acknowledgment)}</div>
     </div>
-    
-    <p>You can view the full details by logging into the GEIMS Complaint Portal.</p>
-    
-    <p>Thank you for your feedback. It helps us improve!</p>
+
+    <div class="divider"></div>
+    <p class="muted" style="margin: 0;">You can view the full details by logging into the portal.</p>
   `;
-  
-  const html = emailWrapper(subject, body);
+
+  const text = [
+    'Complaint resolved',
+    '',
+    `Hello ${name},`,
+    '',
+    `Complaint ID: ${complaintId}`,
+    `Submitted: ${new Date(submittedAt).toLocaleString()}`,
+    `Resolved: ${new Date().toLocaleString()}`,
+    '',
+    'Admin response:',
+    acknowledgment,
+  ].join('\n');
   
   try {
-    const info = await transporter.sendMail({
-      from: getFromAddress(),
-      to: email,
-      subject,
-      html,
-    });
+      const info = await sendBrandedMail({
+        to: email,
+        subject,
+        body,
+        preheader: 'Your complaint was resolved. View the admin response in the portal.',
+        text,
+      });
     
     console.log(`✅ Complaint resolved email sent to ${email}`);
     return { success: true, messageId: info.messageId };
@@ -335,32 +461,43 @@ export const sendStatusUpdateEmail = async ({ email, name, complaintId, status }
   };
   
   const body = `
-    <h2>Complaint Status Update 📬</h2>
-    
+    <h2 class="title">Complaint status updated</h2>
+    <p class="subtitle">There is an update on your complaint.</p>
+
     <p>Hello ${escapeHtml(name)},</p>
-    
-    <p>There's an update on your complaint.</p>
-    
-    <div class="info-box" style="border-left-color: ${statusColors[status] || '#667eea'};">
-      <h3>📋 Status: <span style="color: ${statusColors[status]}">${escapeHtml(status.replace('_', ' '))}</span></h3>
-      <p><strong>Complaint ID:</strong> ${escapeHtml(complaintId)}</p>
-      <p><strong>Updated:</strong> ${new Date().toLocaleString()}</p>
+
+    <div class="info">
+      <div><strong>Status:</strong> ${escapeHtml(status.replace('_', ' '))}</div>
+      <div><strong>Complaint ID:</strong> ${escapeHtml(complaintId)}</div>
+      <div><strong>Updated:</strong> ${escapeHtml(new Date().toLocaleString())}</div>
     </div>
-    
-    <p>${statusMessages[status] || 'Your complaint status has been updated.'}</p>
-    
-    <p>Log in to the portal to view more details.</p>
+
+    <div class="divider"></div>
+    <p style="margin: 0;">${escapeHtml(statusMessages[status] || 'Your complaint status has been updated.')}</p>
+
+    <p class="muted" style="margin: 12px 0 0 0;">Log in to the portal to view more details.</p>
   `;
-  
-  const html = emailWrapper(subject, body);
+
+  const text = [
+    'Complaint status updated',
+    '',
+    `Hello ${name},`,
+    '',
+    `Status: ${status.replace('_', ' ')}`,
+    `Complaint ID: ${complaintId}`,
+    `Updated: ${new Date().toLocaleString()}`,
+    '',
+    statusMessages[status] || 'Your complaint status has been updated.',
+  ].join('\n');
   
   try {
-    const info = await transporter.sendMail({
-      from: getFromAddress(),
-      to: email,
-      subject,
-      html,
-    });
+      const info = await sendBrandedMail({
+        to: email,
+        subject,
+        body,
+        preheader: `Complaint status updated to ${status.replace('_', ' ')}.`,
+        text,
+      });
     
     console.log(`✅ Status update email sent to ${email}`);
     return { success: true, messageId: info.messageId };
