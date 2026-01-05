@@ -10,7 +10,8 @@ import {
   FiMenu,
   FiX,
   FiUser,
-  FiChevronDown
+  FiChevronDown,
+  FiKey
 } from 'react-icons/fi';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
@@ -172,6 +173,14 @@ const Layout = ({ children }) => {
                       <p className="text-xs text-gray-500 mt-1">{user?.email}</p>
                       <p className="text-xs text-gray-400 mt-1">ID: {user?._id?.slice(-8)}</p>
                     </div>
+                    <Link
+                      href="/ChangePassword"
+                      onClick={() => setProfileOpen(false)}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <FiKey size={16} />
+                      <span>Change Password</span>
+                    </Link>
                     <button
                       onClick={() => {
                         logout();
@@ -306,6 +315,14 @@ const Layout = ({ children }) => {
                       <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
                       <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                     </div>
+                    <Link
+                      href="/ChangePassword"
+                      onClick={() => setProfileOpen(false)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <FiKey size={16} />
+                      <span>Change Password</span>
+                    </Link>
                     <button
                       type="button"
                       onClick={() => {
