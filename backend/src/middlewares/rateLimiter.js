@@ -147,10 +147,38 @@ export const createUserBasedLimiter = (options = {}) => {
   });
 };
 
+/**
+ * Complaint submission rate limiter (per user)
+ * Limit: 5 complaints per day per user
+ * Protects against complaint spam and email abuse
+ */
+export const complaintLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: parseInt(process.env.COMPLAINT_RATE_LIMIT_MAX, 10) || 5, // 5 complaints per day
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    res.status(429).json({
+      success: false,
+      message: 'You have reached the daily complaint limit (5 per day). Please try again tomorrow.',
+      retryAfter: Math.ceil(options.windowMs / 1000),
+    });
+  },
+  keyGenerator: (req) => {
+    // Use user ID for authenticated requests
+    return req.userId || req.ip || req.connection.remoteAddress;
+  },
+  skip: (req) => {
+    // Skip for admins (they don't submit complaints but just in case)
+    return req.userRole === 'ADMIN';
+  },
+});
+
 export default {
   loginLimiter,
   apiLimiter,
   uploadLimiter,
   passwordResetLimiter,
   createUserBasedLimiter,
+  complaintLimiter,
 };

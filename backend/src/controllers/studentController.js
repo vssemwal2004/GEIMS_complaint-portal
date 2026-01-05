@@ -20,10 +20,44 @@ import { sendComplaintSubmittedEmail } from '../services/emailService.js';
 /**
  * Submit a new complaint
  * POST /api/student/complaints
+ * 
+ * Security:
+ * - Rate limited to 5 complaints per day
+ * - Content moderation in validation
+ * - Duplicate detection (same content within 1 hour)
  */
 export const submitComplaint = asyncHandler(async (req, res) => {
   const { subject, content } = req.body;
   const userId = req.userId;
+
+  // Check for duplicate complaint (same content within last hour)
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const duplicateComplaint = await Complaint.findOne({
+    userId,
+    content: content.trim(),
+    createdAt: { $gte: oneHourAgo }
+  });
+
+  if (duplicateComplaint) {
+    return res.status(400).json({
+      success: false,
+      message: 'You have already submitted this complaint recently. Please wait before submitting again.',
+    });
+  }
+
+  // Check for recent submission (cooldown of 5 minutes between complaints)
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const recentComplaint = await Complaint.findOne({
+    userId,
+    createdAt: { $gte: fiveMinutesAgo }
+  });
+
+  if (recentComplaint) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please wait at least 5 minutes between complaints.',
+    });
+  }
 
   // Get user details for email
   const user = await User.findById(userId);

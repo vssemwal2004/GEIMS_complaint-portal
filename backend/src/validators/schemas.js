@@ -131,14 +131,69 @@ const countWords = (text) => {
 };
 
 /**
- * Complaint creation schema
+ * Blocked words/phrases for content moderation
+ * These indicate threats, abuse, or inappropriate content
+ */
+const BLOCKED_PATTERNS = [
+  // Threats
+  /\b(kill|murder|bomb|attack|shoot|stab|hurt|destroy)\s*(you|them|him|her|everyone|all)/gi,
+  /\b(i\s+will|gonna|going\s+to)\s+(kill|hurt|attack|bomb|shoot)/gi,
+  /\bdeath\s+threat/gi,
+  /\b(blow\s+up|burn\s+down)/gi,
+  // Severe profanity and slurs (basic list - expand as needed)
+  /\b(f+u+c+k+|sh+i+t+|a+ss+h+o+l+e+)\b/gi,
+  // Spam indicators
+  /(.{3,})\1{5,}/gi, // Same text repeated 5+ times
+  /\b(test|asdf|qwerty|aaaa|xxxx)\b/gi,
+];
+
+/**
+ * Check if content contains blocked/inappropriate content
+ * @param {string} text
+ * @returns {boolean} true if content is clean
+ */
+const isContentAppropriate = (text) => {
+  if (!text || typeof text !== 'string') return true;
+  const lowerText = text.toLowerCase();
+  return !BLOCKED_PATTERNS.some(pattern => pattern.test(lowerText));
+};
+
+/**
+ * Check for spam-like content (repetitive, gibberish)
+ * @param {string} text
+ * @returns {boolean} true if content appears legitimate
+ */
+const isNotSpam = (text) => {
+  if (!text || typeof text !== 'string') return true;
+  
+  const words = text.toLowerCase().split(/\s+/);
+  if (words.length < 5) return true;
+  
+  // Check for excessive repetition (same word > 40% of content)
+  const wordCounts = {};
+  words.forEach(w => { wordCounts[w] = (wordCounts[w] || 0) + 1; });
+  const maxCount = Math.max(...Object.values(wordCounts));
+  if (maxCount / words.length > 0.4) return false;
+  
+  // Check for keyboard mashing (too many consonants in a row)
+  if (/[bcdfghjklmnpqrstvwxz]{6,}/i.test(text)) return false;
+  
+  return true;
+};
+
+/**
+ * Complaint creation schema with content moderation
  */
 export const createComplaintSchema = z.object({
   subject: z
     .string()
     .min(5, 'Subject must be at least 5 characters')
     .max(200, 'Subject cannot exceed 200 characters')
-    .trim(),
+    .trim()
+    .refine(
+      (val) => isContentAppropriate(val),
+      'Subject contains inappropriate content. Please use respectful language.'
+    ),
   content: z
     .string()
     .min(1, 'Content is required')
@@ -151,6 +206,14 @@ export const createComplaintSchema = z.object({
     .refine(
       (val) => countWords(val) <= 5000,
       'Content cannot exceed 5000 words'
+    )
+    .refine(
+      (val) => isContentAppropriate(val),
+      'Content contains inappropriate or threatening language. Please revise your complaint.'
+    )
+    .refine(
+      (val) => isNotSpam(val),
+      'Content appears to be spam or contains excessive repetition. Please submit a genuine complaint.'
     ),
 }).strict();
 
