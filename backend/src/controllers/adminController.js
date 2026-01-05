@@ -322,7 +322,9 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
     sendComplaintResolvedEmail({
       email: student.email,
       name: student.name,
-      complaintId: complaint._id.toString(),
+      complaintId: complaint.complaintId || complaint._id.toString(),
+      subject: complaint.subject,
+      content: complaint.content,
       acknowledgment,
       submittedAt: complaint.createdAt,
     }).catch(err => console.error('Failed to send resolution email:', err));
@@ -330,7 +332,8 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
     sendStatusUpdateEmail({
       email: student.email,
       name: student.name,
-      complaintId: complaint._id.toString(),
+      complaintId: complaint.complaintId || complaint._id.toString(),
+      subject: complaint.subject,
       status,
     }).catch(err => console.error('Failed to send status update email:', err));
   }

@@ -20,13 +20,34 @@ export const COMPLAINT_STATUS = {
   RESOLVED: 'RESOLVED',
 };
 
+/**
+ * Generate complaint ID in format GEHU + 6 random digits
+ * @returns {string}
+ */
+const generateComplaintId = () => {
+  const randomDigits = Math.floor(100000 + Math.random() * 900000); // 6 digits
+  return `GEHU${randomDigits}`;
+};
+
 const complaintSchema = new mongoose.Schema(
   {
+    complaintId: {
+      type: String,
+      unique: true,
+      default: generateComplaintId,
+      index: true,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User ID is required'],
       index: true, // Index for faster user-based queries
+    },
+    subject: {
+      type: String,
+      required: [true, 'Complaint subject is required'],
+      trim: true,
+      maxlength: [200, 'Subject cannot exceed 200 characters'],
     },
     content: {
       type: String,
@@ -101,11 +122,26 @@ const complaintSchema = new mongoose.Schema(
 // Compound index for efficient queries
 complaintSchema.index({ userId: 1, status: 1 });
 complaintSchema.index({ createdAt: -1 }); // For sorting by newest first
+complaintSchema.index({ complaintId: 1 }); // For searching by complaint ID
 
 /**
- * Pre-save middleware to set resolvedAt when status changes to RESOLVED
+ * Pre-save middleware
  */
-complaintSchema.pre('save', function (next) {
+complaintSchema.pre('save', async function (next) {
+  // Generate unique complaintId if not set
+  if (this.isNew && !this.complaintId) {
+    let isUnique = false;
+    while (!isUnique) {
+      const newId = generateComplaintId();
+      const existing = await mongoose.model('Complaint').findOne({ complaintId: newId });
+      if (!existing) {
+        this.complaintId = newId;
+        isUnique = true;
+      }
+    }
+  }
+  
+  // Set resolvedAt when status changes to RESOLVED
   if (this.isModified('status') && this.status === COMPLAINT_STATUS.RESOLVED) {
     this.resolvedAt = new Date();
   }

@@ -84,7 +84,9 @@ const StudentComplaints = () => {
           <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <h3 className="text-sm font-semibold text-gray-900">Complaint Details</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {selectedComplaint.complaintId || 'Complaint Details'}
+                </h3>
                 <StatusBadge status={selectedComplaint.status} />
               </div>
               <button
@@ -98,15 +100,30 @@ const StudentComplaints = () => {
             </div>
 
             <div className="px-4 py-4 space-y-4">
-              <div>
-                <p className="text-xs text-gray-500">Submitted</p>
-                <p className="text-sm text-gray-900 mt-1">
-                  {new Date(selectedComplaint.createdAt).toLocaleString()}
-                </p>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500">Complaint ID</p>
+                  <p className="text-sm font-medium text-gray-900 mt-1">
+                    {selectedComplaint.complaintId || selectedComplaint._id}
+                  </p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500">Submitted</p>
+                  <p className="text-sm text-gray-900 mt-1">
+                    {new Date(selectedComplaint.createdAt).toLocaleString()}
+                  </p>
+                </div>
               </div>
 
+              {selectedComplaint.subject && (
+                <div>
+                  <p className="text-xs text-gray-500">Subject</p>
+                  <p className="text-sm font-medium text-gray-900 mt-1">{selectedComplaint.subject}</p>
+                </div>
+              )}
+
               <div>
-                <p className="text-xs text-gray-500">Complaint</p>
+                <p className="text-xs text-gray-500">Complaint Details</p>
                 <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
                   <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedComplaint.content}</p>
                 </div>
@@ -225,7 +242,10 @@ const StudentComplaints = () => {
                   className="w-full text-left px-4 py-3 hover:bg-white/60"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm text-gray-900 line-clamp-1">{complaint.content}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-primary-600">{complaint.complaintId}</p>
+                      <p className="text-sm text-gray-900 line-clamp-1 mt-0.5">{complaint.subject || complaint.content}</p>
+                    </div>
                     <StatusBadge status={complaint.status} />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -244,9 +264,10 @@ const StudentComplaints = () => {
               <table className="min-w-full text-sm">
                 <thead className="text-xs text-gray-600">
                   <tr className="border-b border-gray-200 bg-white/60">
+                    <th className="text-left font-medium px-4 py-2">ID</th>
                     <th className="text-left font-medium px-4 py-2">Date</th>
+                    <th className="text-left font-medium px-4 py-2">Subject</th>
                     <th className="text-left font-medium px-4 py-2">Status</th>
-                    <th className="text-left font-medium px-4 py-2">Complaint</th>
                     <th className="text-left font-medium px-4 py-2">Attachment</th>
                   </tr>
                 </thead>
@@ -257,6 +278,9 @@ const StudentComplaints = () => {
                       className="hover:bg-white/60 cursor-pointer"
                       onClick={() => handleViewDetails(complaint)}
                     >
+                      <td className="px-4 py-3 text-primary-600 font-medium whitespace-nowrap">
+                        {complaint.complaintId || complaint._id.slice(-8)}
+                      </td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {new Date(complaint.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
@@ -264,11 +288,11 @@ const StudentComplaints = () => {
                           day: 'numeric',
                         })}
                       </td>
+                      <td className="px-4 py-3 text-gray-900">
+                        <span className="line-clamp-1">{complaint.subject || complaint.content}</span>
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <StatusBadge status={complaint.status} />
-                      </td>
-                      <td className="px-4 py-3 text-gray-900">
-                        <span className="line-clamp-1">{complaint.content}</span>
                       </td>
                       <td className="px-4 py-3 text-gray-600">
                         {complaint.imageUrl ? 'Yes' : '—'}

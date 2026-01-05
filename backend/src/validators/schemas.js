@@ -134,6 +134,11 @@ const countWords = (text) => {
  * Complaint creation schema
  */
 export const createComplaintSchema = z.object({
+  subject: z
+    .string()
+    .min(5, 'Subject must be at least 5 characters')
+    .max(200, 'Subject cannot exceed 200 characters')
+    .trim(),
   content: z
     .string()
     .min(1, 'Content is required')

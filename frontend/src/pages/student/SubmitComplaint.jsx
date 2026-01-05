@@ -14,6 +14,7 @@ const SubmitComplaint = () => {
   const router = useRouter();
   const fileInputRef = useRef(null);
   
+  const [subject, setSubject] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -75,7 +76,13 @@ const SubmitComplaint = () => {
     e.preventDefault();
     setErrors({});
 
-    // Validate
+    // Validate subject
+    if (!subject.trim() || subject.trim().length < 5) {
+      setErrors({ subject: 'Subject must be at least 5 characters' });
+      return;
+    }
+
+    // Validate content
     if (!isWordCountValid) {
       setErrors({ content: `Content must be between ${minWords} and ${maxWords} words` });
       return;
@@ -85,6 +92,7 @@ const SubmitComplaint = () => {
 
     try {
       const formData = new FormData();
+      formData.append('subject', subject.trim());
       formData.append('content', content);
       
       if (image) {
@@ -96,7 +104,8 @@ const SubmitComplaint = () => {
       });
 
       if (response.data.success) {
-        toast.success('Complaint submitted successfully!');
+        const complaintId = response.data.data.complaint.complaintId;
+        toast.success(`Complaint ${complaintId} submitted successfully!`);
         router.push('/student/complaints');
       }
     } catch (error) {
@@ -126,6 +135,31 @@ const SubmitComplaint = () => {
 
       <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Subject Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-2">
+              Subject <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              maxLength={200}
+              className={`w-full px-3 py-3 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder:text-gray-400 ${
+                errors.subject ? 'border-red-500' : 'border-gray-200'
+              }`}
+              placeholder="Brief subject of your complaint (e.g., 'Hostel Water Supply Issue')"
+              required
+            />
+            {errors.subject && (
+              <span className="text-red-600 text-xs flex items-center gap-1 mt-1">
+                <FiAlertCircle />
+                {errors.subject}
+              </span>
+            )}
+            <p className="text-xs text-gray-500 mt-1">{subject.length}/200 characters</p>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* Content Textarea */}
             <div className="lg:col-span-8">

@@ -370,20 +370,107 @@ export const sendPasswordResetEmail = async ({ email, name, resetUrl, expiresMin
 };
 
 /**
+ * Send complaint submission acknowledgment email
+ * @param {Object} params
+ * @param {string} params.email - Student email
+ * @param {string} params.name - Student name
+ * @param {string} params.complaintId - Complaint ID (GEHU + 6 digits)
+ * @param {string} params.subject - Complaint subject
+ * @param {string} params.content - Complaint body/content
+ * @returns {Promise<Object>}
+ */
+export const sendComplaintSubmittedEmail = async ({ email, name, complaintId, subject, content }) => {
+  const emailSubject = `Complaint Received - ${complaintId} - GEIMS Complaint Portal`;
+  
+  // Truncate content for preview if too long
+  const contentPreview = content.length > 500 ? content.substring(0, 500) + '...' : content;
+  
+  const body = `
+    <h2 class="title">Complaint Received</h2>
+    <p class="subtitle">Your complaint has been successfully submitted.</p>
+
+    <p>Hello ${escapeHtml(name)},</p>
+    <p>Thank you for submitting your complaint. We have received it and will review it shortly.</p>
+
+    <div class="info">
+      <div><strong>Complaint ID:</strong> ${escapeHtml(complaintId)}</div>
+      <div><strong>Submitted:</strong> ${escapeHtml(new Date().toLocaleString())}</div>
+      <div><strong>Status:</strong> <span style="color: #17a2b8;">READ</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="info">
+      <div><strong>Subject:</strong></div>
+      <div style="margin-top: 6px; font-weight: 600;">${escapeHtml(subject)}</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="info">
+      <div><strong>Complaint Details:</strong></div>
+      <div style="margin-top: 6px; white-space: pre-wrap;">${escapeHtml(contentPreview)}</div>
+    </div>
+
+    <div class="divider"></div>
+    <p class="muted" style="margin: 0;">You can track the status of your complaint by logging into the portal.</p>
+    <p class="muted" style="margin: 6px 0 0 0;">Please save your Complaint ID <strong>${escapeHtml(complaintId)}</strong> for future reference.</p>
+  `;
+
+  const text = [
+    'Complaint Received',
+    '',
+    `Hello ${name},`,
+    '',
+    'Thank you for submitting your complaint. We have received it and will review it shortly.',
+    '',
+    `Complaint ID: ${complaintId}`,
+    `Submitted: ${new Date().toLocaleString()}`,
+    'Status: READ',
+    '',
+    `Subject: ${subject}`,
+    '',
+    'Complaint Details:',
+    contentPreview,
+  ].join('\n');
+  
+  try {
+    const info = await sendBrandedMail({
+      to: email,
+      subject: emailSubject,
+      body,
+      preheader: `Your complaint ${complaintId} has been received. We will review it shortly.`,
+      text,
+    });
+    
+    console.log(`✅ Complaint submitted email sent to ${email}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`❌ Failed to send complaint submitted email to ${email}:`, error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Send complaint resolved acknowledgment email
  * @param {Object} params
  * @param {string} params.email - Student email
  * @param {string} params.name - Student name
  * @param {string} params.complaintId - Complaint ID
+ * @param {string} params.subject - Complaint subject
+ * @param {string} params.content - Complaint body/content
  * @param {string} params.acknowledgment - Admin acknowledgment text
  * @param {Date} params.submittedAt - Original submission date
  * @returns {Promise<Object>}
  */
-export const sendComplaintResolvedEmail = async ({ email, name, complaintId, acknowledgment, submittedAt }) => {
-  const subject = 'Your Complaint Has Been Resolved - GEIMS Complaint Portal';
+export const sendComplaintResolvedEmail = async ({ email, name, complaintId, subject, content, acknowledgment, submittedAt }) => {
+  const emailSubject = `Complaint Resolved - ${complaintId} - GEIMS Complaint Portal`;
+  
+  // Truncate content for preview if too long
+  const contentPreview = content && content.length > 300 ? content.substring(0, 300) + '...' : (content || '');
   
   const body = `
-    <h2 class="title">Complaint resolved</h2>
+    <h2 class="title">Complaint Resolved</h2>
     <p class="subtitle">The administration has resolved your complaint.</p>
 
     <p>Hello ${escapeHtml(name)},</p>
@@ -398,8 +485,23 @@ export const sendComplaintResolvedEmail = async ({ email, name, complaintId, ack
     <div class="divider"></div>
 
     <div class="info">
-      <div><strong>Admin response</strong></div>
-      <div style="margin-top: 6px;">${escapeHtml(acknowledgment)}</div>
+      <div><strong>Subject:</strong></div>
+      <div style="margin-top: 6px; font-weight: 600;">${escapeHtml(subject || 'N/A')}</div>
+    </div>
+
+    ${contentPreview ? `
+    <div class="divider"></div>
+    <div class="info">
+      <div><strong>Your Complaint:</strong></div>
+      <div style="margin-top: 6px; white-space: pre-wrap;">${escapeHtml(contentPreview)}</div>
+    </div>
+    ` : ''}
+
+    <div class="divider"></div>
+
+    <div class="info" style="background: #f0f9ff; border-color: #bae6fd; border-left-color: #0ea5e9;">
+      <div><strong>Admin Response:</strong></div>
+      <div style="margin-top: 6px; white-space: pre-wrap;">${escapeHtml(acknowledgment)}</div>
     </div>
 
     <div class="divider"></div>
@@ -407,24 +509,25 @@ export const sendComplaintResolvedEmail = async ({ email, name, complaintId, ack
   `;
 
   const text = [
-    'Complaint resolved',
+    'Complaint Resolved',
     '',
     `Hello ${name},`,
     '',
     `Complaint ID: ${complaintId}`,
+    `Subject: ${subject || 'N/A'}`,
     `Submitted: ${new Date(submittedAt).toLocaleString()}`,
     `Resolved: ${new Date().toLocaleString()}`,
     '',
-    'Admin response:',
+    'Admin Response:',
     acknowledgment,
   ].join('\n');
   
   try {
       const info = await sendBrandedMail({
         to: email,
-        subject,
+        subject: emailSubject,
         body,
-        preheader: 'Your complaint was resolved. View the admin response in the portal.',
+        preheader: `Your complaint ${complaintId} was resolved. View the admin response in the portal.`,
         text,
       });
     
@@ -442,11 +545,12 @@ export const sendComplaintResolvedEmail = async ({ email, name, complaintId, ack
  * @param {string} params.email - Student email
  * @param {string} params.name - Student name
  * @param {string} params.complaintId - Complaint ID
+ * @param {string} params.subject - Complaint subject
  * @param {string} params.status - New status
  * @returns {Promise<Object>}
  */
-export const sendStatusUpdateEmail = async ({ email, name, complaintId, status }) => {
-  const subject = `Complaint Status Updated - ${status.replace('_', ' ')} - GEIMS`;
+export const sendStatusUpdateEmail = async ({ email, name, complaintId, subject: complaintSubject, status }) => {
+  const emailSubject = `Complaint Status Updated - ${complaintId} - ${status.replace('_', ' ')}`;
   
   const statusColors = {
     READ: '#17a2b8',
@@ -461,14 +565,15 @@ export const sendStatusUpdateEmail = async ({ email, name, complaintId, status }
   };
   
   const body = `
-    <h2 class="title">Complaint status updated</h2>
+    <h2 class="title">Complaint Status Updated</h2>
     <p class="subtitle">There is an update on your complaint.</p>
 
     <p>Hello ${escapeHtml(name)},</p>
 
     <div class="info">
-      <div><strong>Status:</strong> ${escapeHtml(status.replace('_', ' '))}</div>
       <div><strong>Complaint ID:</strong> ${escapeHtml(complaintId)}</div>
+      <div><strong>Subject:</strong> ${escapeHtml(complaintSubject || 'N/A')}</div>
+      <div><strong>Status:</strong> <span style="color: ${statusColors[status] || '#000'};">${escapeHtml(status.replace('_', ' '))}</span></div>
       <div><strong>Updated:</strong> ${escapeHtml(new Date().toLocaleString())}</div>
     </div>
 
@@ -479,12 +584,13 @@ export const sendStatusUpdateEmail = async ({ email, name, complaintId, status }
   `;
 
   const text = [
-    'Complaint status updated',
+    'Complaint Status Updated',
     '',
     `Hello ${name},`,
     '',
-    `Status: ${status.replace('_', ' ')}`,
     `Complaint ID: ${complaintId}`,
+    `Subject: ${complaintSubject || 'N/A'}`,
+    `Status: ${status.replace('_', ' ')}`,
     `Updated: ${new Date().toLocaleString()}`,
     '',
     statusMessages[status] || 'Your complaint status has been updated.',
@@ -493,9 +599,9 @@ export const sendStatusUpdateEmail = async ({ email, name, complaintId, status }
   try {
       const info = await sendBrandedMail({
         to: email,
-        subject,
+        subject: emailSubject,
         body,
-        preheader: `Complaint status updated to ${status.replace('_', ' ')}.`,
+        preheader: `Complaint ${complaintId} status updated to ${status.replace('_', ' ')}.`,
         text,
       });
     
@@ -510,6 +616,7 @@ export const sendStatusUpdateEmail = async ({ email, name, complaintId, status }
 export default {
   sendAccountCreatedEmail,
   sendPasswordChangedEmail,
+  sendComplaintSubmittedEmail,
   sendComplaintResolvedEmail,
   sendStatusUpdateEmail,
 };

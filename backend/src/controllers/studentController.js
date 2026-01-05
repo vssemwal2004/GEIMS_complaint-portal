@@ -12,20 +12,26 @@
  */
 
 import Complaint, { COMPLAINT_STATUS } from '../models/Complaint.js';
+import User from '../models/User.js';
 import { asyncHandler, ValidationError, NotFoundError } from '../middlewares/errorHandler.js';
 import { getFileUrl } from '../middlewares/upload.js';
+import { sendComplaintSubmittedEmail } from '../services/emailService.js';
 
 /**
  * Submit a new complaint
  * POST /api/student/complaints
  */
 export const submitComplaint = asyncHandler(async (req, res) => {
-  const { content } = req.body;
+  const { subject, content } = req.body;
   const userId = req.userId;
+
+  // Get user details for email
+  const user = await User.findById(userId);
 
   // Create complaint object
   const complaintData = {
     userId,
+    subject,
     content,
     status: COMPLAINT_STATUS.READ, // Initial status
   };
@@ -38,12 +44,25 @@ export const submitComplaint = asyncHandler(async (req, res) => {
   const complaint = new Complaint(complaintData);
   await complaint.save();
 
+  // Send email notification (non-blocking)
+  if (user && user.email) {
+    sendComplaintSubmittedEmail({
+      email: user.email,
+      name: user.name,
+      complaintId: complaint.complaintId,
+      subject: complaint.subject,
+      content: complaint.content,
+    }).catch(err => console.error('Failed to send complaint email:', err.message));
+  }
+
   res.status(201).json({
     success: true,
     message: 'Complaint submitted successfully',
     data: {
       complaint: {
         id: complaint._id,
+        complaintId: complaint.complaintId,
+        subject: complaint.subject,
         content: complaint.content,
         imageUrl: complaint.imageUrl,
         status: complaint.status,

@@ -444,7 +444,7 @@ const AdminComplaints = () => {
                 </div>
                 <div className="rounded-md border border-gray-200 px-3 py-2">
                   <p className="text-[11px] text-gray-500">Complaint ID</p>
-                  <p className="text-sm text-gray-900 break-words">{selectedComplaint._id}</p>
+                  <p className="text-sm text-gray-900 break-words font-mono">{selectedComplaint.complaintId || selectedComplaint._id}</p>
                 </div>
               </div>
             </div>
@@ -548,14 +548,19 @@ const AdminComplaints = () => {
 
               {newStatus === 'RESOLVED' && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Response</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Response <span className="text-red-500">*</span>
+                  </label>
                   <textarea
                     value={acknowledgment}
                     onChange={(e) => setAcknowledgment(e.target.value)}
                     rows={4}
                     className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
-                    placeholder="Write a short response…"
+                    placeholder="Write a short response (required)…"
                   />
+                  {!acknowledgment.trim() && (
+                    <p className="mt-1 text-xs text-red-500">Response is required to resolve complaint</p>
+                  )}
                 </div>
               )}
             </div>
@@ -571,8 +576,8 @@ const AdminComplaints = () => {
               <button
                 type="button"
                 onClick={handleUpdateStatus}
-                disabled={updating}
-                className="h-9 flex-1 rounded-md border border-blue-600 bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                disabled={updating || (newStatus === 'RESOLVED' && !acknowledgment.trim())}
+                className="h-9 flex-1 rounded-md border border-blue-600 bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {updating ? 'Updating…' : 'Update'}
               </button>
