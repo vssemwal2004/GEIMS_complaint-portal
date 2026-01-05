@@ -250,6 +250,14 @@ const Layout = ({ children }) => {
 
             {/* Right: Mobile menu + Profile */}
             <div className="flex items-center gap-2">
+              {/* Back to Home (desktop/tablet) */}
+              <Link
+                href="/"
+                className="hidden sm:inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors"
+              >
+                Back to Home
+              </Link>
+
               {/* Mobile nav */}
               <div className="md:hidden relative" ref={studentNavRef}>
                 <button
@@ -263,6 +271,14 @@ const Layout = ({ children }) => {
 
                 {studentNavOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-sm py-1">
+                    <Link
+                      href="/"
+                      onClick={() => setStudentNavOpen(false)}
+                      className="block px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50"
+                    >
+                      Back to Home
+                    </Link>
+                    <div className="my-1 border-t border-gray-100" />
                     {studentNavItems.map((item) => {
                       const active = isActive(item.path);
                       return (
