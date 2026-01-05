@@ -433,9 +433,13 @@ const AdminComplaints = () => {
                 <StatusPill status={selectedComplaint.status} />
               </div>
 
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="rounded-md border border-gray-200 px-3 py-2">
-                  <p className="text-[11px] text-gray-500">Student</p>
+                  <p className="text-[11px] text-gray-500">Student ID</p>
+                  <p className="text-sm text-gray-900 break-words font-mono">{selectedComplaint.userId?.studentId || '—'}</p>
+                </div>
+                <div className="rounded-md border border-gray-200 px-3 py-2">
+                  <p className="text-[11px] text-gray-500">Student Name</p>
                   <p className="text-sm text-gray-900 break-words">{selectedComplaint.userId?.name || '—'}</p>
                 </div>
                 <div className="rounded-md border border-gray-200 px-3 py-2">

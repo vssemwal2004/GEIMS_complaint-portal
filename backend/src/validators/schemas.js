@@ -86,6 +86,11 @@ export const resetPasswordSchema = z.object({
  * Single student creation schema
  */
 export const createStudentSchema = z.object({
+  studentId: z
+    .string()
+    .min(1, 'Student ID is required')
+    .max(50, 'Student ID cannot exceed 50 characters')
+    .trim(),
   name: z
     .string()
     .min(2, 'Name must be at least 2 characters')
@@ -107,6 +112,11 @@ export const createStudentSchema = z.object({
  * CSV student row validation schema
  */
 export const csvStudentSchema = z.object({
+  studentId: z
+    .string()
+    .min(1, 'Student ID is required')
+    .max(50, 'Student ID cannot exceed 50 characters')
+    .trim(),
   name: z
     .string()
     .min(2, 'Name must be at least 2 characters')

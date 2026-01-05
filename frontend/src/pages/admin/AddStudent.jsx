@@ -7,6 +7,7 @@ const AddStudent = () => {
   const router = useRouter();
 
   const [formData, setFormData] = useState({
+    studentId: '',
     name: '',
     email: '',
     college: '',
@@ -31,6 +32,7 @@ const AddStudent = () => {
 
     try {
       const payload = {
+        studentId: formData.studentId,
         name: formData.name,
         email: formData.email,
         college: formData.college,
@@ -39,7 +41,7 @@ const AddStudent = () => {
       const response = await api.post('/api/admin/students', payload);
       if (response?.data?.success) {
         toast.success('Student created. Credentials sent via email.');
-        setFormData({ name: '', email: '', college: '' });
+        setFormData({ studentId: '', name: '', email: '', college: '' });
         return;
       }
 
@@ -101,7 +103,7 @@ const AddStudent = () => {
 
   const downloadTemplate = () => {
     const csvContent =
-      'name,email,college\nJohn Doe,john@example.com,Sample College\nJane Smith,jane@example.com,Another College';
+      'studentId,name,email,college\nSTU2024001,John Doe,john@example.com,Sample College\nSTU2024002,Jane Smith,jane@example.com,Another College';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -131,7 +133,21 @@ const AddStudent = () => {
           <div className="px-5 py-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Student Name</label>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Student ID <span className="text-red-500">*</span></label>
+                <input
+                  value={formData.studentId}
+                  onChange={onChange('studentId')}
+                  required
+                  className={
+                    "h-9 w-full rounded-md border px-3 text-sm text-gray-800 focus:outline-none " +
+                    (errors.studentId ? 'border-rose-300 focus:border-rose-400' : 'border-gray-200 focus:border-blue-500')
+                  }
+                  placeholder="e.g., STU2024001"
+                />
+                {errors.studentId ? <p className="mt-1 text-[11px] text-rose-600">{errors.studentId}</p> : null}
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Student Name <span className="text-red-500">*</span></label>
                 <input
                   value={formData.name}
                   onChange={onChange('name')}
@@ -145,7 +161,7 @@ const AddStudent = () => {
                 {errors.name ? <p className="mt-1 text-[11px] text-rose-600">{errors.name}</p> : null}
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">Gmail</label>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">Gmail <span className="text-red-500">*</span></label>
                 <input
                   type="email"
                   value={formData.email}
@@ -159,8 +175,8 @@ const AddStudent = () => {
                 />
                 {errors.email ? <p className="mt-1 text-[11px] text-rose-600">{errors.email}</p> : null}
               </div>
-              <div className="sm:col-span-2">
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">College</label>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">College <span className="text-red-500">*</span></label>
                 <input
                   value={formData.college}
                   onChange={onChange('college')}
@@ -202,7 +218,7 @@ const AddStudent = () => {
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-200">
             <p className="text-xs font-semibold text-gray-700">Upload CSV of Students</p>
-            <p className="mt-1 text-[11px] text-gray-500">Headers: name, email, college</p>
+            <p className="mt-1 text-[11px] text-gray-500">Headers: studentId, name, email, college</p>
           </div>
 
           {!results ? (

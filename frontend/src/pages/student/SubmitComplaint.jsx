@@ -1,23 +1,18 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
   FiSend, 
-  FiX, 
   FiAlertCircle,
-  FiCheck,
-  FiUpload
+  FiCheck
 } from 'react-icons/fi';
 
 const SubmitComplaint = () => {
   const router = useRouter();
-  const fileInputRef = useRef(null);
   
   const [subject, setSubject] = useState('');
   const [content, setContent] = useState('');
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -31,45 +26,6 @@ const SubmitComplaint = () => {
   const minWords = 10;
   const maxWords = 5000;
   const isWordCountValid = wordCount >= minWords && wordCount <= maxWords;
-
-  // Handle image selection
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    
-    if (file) {
-      // Validate file type
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-      if (!validTypes.includes(file.type)) {
-        toast.error('Only JPG, JPEG, and PNG images are allowed');
-        return;
-      }
-
-      // Validate file size (5MB)
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        toast.error('Image size must be less than 5MB');
-        return;
-      }
-
-      setImage(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Remove selected image
-  const removeImage = () => {
-    setImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -91,16 +47,9 @@ const SubmitComplaint = () => {
     setSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append('subject', subject.trim());
-      formData.append('content', content);
-      
-      if (image) {
-        formData.append('image', image);
-      }
-
-      const response = await api.post('/api/student/complaints', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const response = await api.post('/api/student/complaints', {
+        subject: subject.trim(),
+        content: content,
       });
 
       if (response.data.success) {
@@ -211,54 +160,11 @@ const SubmitComplaint = () => {
             </div>
 
             <div className="lg:col-span-4 space-y-4">
-              {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Attach Image (Optional)
-                </label>
-
-                {!imagePreview ? (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer bg-gray-50 hover:bg-gray-100/50"
-                  >
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-600">
-                      <FiUpload />
-                    </div>
-                    <p className="text-sm font-medium text-gray-900 mt-3">Upload an image</p>
-                    <p className="text-xs text-gray-500 mt-1">JPG / JPEG / PNG (max 5MB)</p>
-                  </div>
-                ) : (
-                  <div className="relative border border-gray-200 rounded-lg overflow-hidden">
-                    <img src={imagePreview} alt="Preview" className="w-full h-56 object-contain bg-gray-50" />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute top-2 right-2 w-9 h-9 inline-flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-                    >
-                      <FiX size={16} />
-                    </button>
-                    <div className="p-3 bg-gray-50 border-t border-gray-200">
-                      <p className="text-sm text-gray-600 truncate">{image?.name}</p>
-                      <p className="text-xs text-gray-400">{(image?.size / 1024 / 1024).toFixed(2)} MB</p>
-                    </div>
-                  </div>
-                )}
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </div>
-
               {/* Guidelines */}
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
                 <p className="text-xs font-medium text-gray-700">Guidelines</p>
                 <p className="text-xs text-gray-600 mt-2">
-                  Keep it respectful. Minimum {minWords} words. Add an image only if it supports your complaint.
+                  Keep it respectful. Minimum {minWords} words. Describe your complaint clearly with relevant details.
                 </p>
               </div>
             </div>

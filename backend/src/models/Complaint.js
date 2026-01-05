@@ -164,7 +164,7 @@ complaintSchema.statics.findByUserId = function (userId) {
  */
 complaintSchema.statics.findAllWithUser = function (filters = {}) {
   return this.find(filters)
-    .populate('userId', 'name email college')
+    .populate('userId', 'name email college studentId')
     .populate('resolvedBy', 'name email')
     .sort({ createdAt: -1 });
 };

@@ -102,8 +102,8 @@ const AdminStudents = () => {
                       <p className="text-sm text-gray-700 break-words">{student.email}</p>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <p className="text-sm text-gray-700 whitespace-nowrap" title={student._id}>
-                        {student._id}
+                      <p className="text-sm text-gray-700 font-mono" title={student.studentId}>
+                        {student.studentId || '—'}
                       </p>
                     </td>
                   </tr>

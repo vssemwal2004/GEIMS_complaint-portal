@@ -14,9 +14,8 @@
 import express from 'express';
 import studentController from '../controllers/studentController.js';
 import { authenticate, requireStudent, checkPasswordChange } from '../middlewares/auth.js';
-import { apiLimiter, uploadLimiter, complaintLimiter } from '../middlewares/rateLimiter.js';
+import { apiLimiter, complaintLimiter } from '../middlewares/rateLimiter.js';
 import { validateBody, validateObjectId } from '../middlewares/validate.js';
-import { uploadSingle } from '../middlewares/upload.js';
 import { createComplaintSchema } from '../validators/schemas.js';
 
 const router = express.Router();
@@ -68,8 +67,6 @@ router.get(
 router.post(
   '/complaints',
   complaintLimiter,
-  uploadLimiter,
-  uploadSingle('image'),
   validateBody(createComplaintSchema),
   studentController.submitComplaint
 );

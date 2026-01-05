@@ -54,7 +54,7 @@ const generateSecurePassword = () => {
  * POST /api/admin/students
  */
 export const createStudent = asyncHandler(async (req, res) => {
-  const { name, email, college } = req.body;
+  const { studentId, name, email, college } = req.body;
 
   // Check if email already exists
   const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -62,11 +62,18 @@ export const createStudent = asyncHandler(async (req, res) => {
     throw new ValidationError('A user with this email already exists');
   }
 
+  // Check if studentId already exists
+  const existingStudentId = await User.findOne({ studentId: studentId.trim() });
+  if (existingStudentId) {
+    throw new ValidationError('A student with this Student ID already exists');
+  }
+
   // Generate secure random password
   const temporaryPassword = generateSecurePassword();
 
   // Create student
   const student = new User({
+    studentId: studentId.trim(),
     name,
     email: email.toLowerCase(),
     college,
@@ -91,6 +98,7 @@ export const createStudent = asyncHandler(async (req, res) => {
     data: {
       student: {
         id: student._id,
+        studentId: student.studentId,
         name: student.name,
         email: student.email,
         college: student.college,
@@ -118,13 +126,26 @@ export const createStudentsFromCSV = asyncHandler(async (req, res) => {
       columns: true,
       skip_empty_lines: true,
       trim: true,
-      // Only allow expected columns
+      // Only allow expected columns - support multiple header variations
       on_record: (record) => {
-        // Filter to only expected fields
+        // Support common header variations (case-insensitive matching)
+        const getField = (variations) => {
+          for (const key of Object.keys(record)) {
+            const lowerKey = key.toLowerCase().replace(/[\s_-]/g, '');
+            for (const v of variations) {
+              if (lowerKey === v.toLowerCase().replace(/[\s_-]/g, '')) {
+                return record[key];
+              }
+            }
+          }
+          return undefined;
+        };
+
         return {
-          name: record.name,
-          email: record.email,
-          college: record.college,
+          studentId: getField(['studentId', 'student_id', 'Student ID', 'StudentID', 'id']),
+          name: getField(['name', 'studentName', 'Student Name', 'fullName', 'Full Name']),
+          email: getField(['email', 'gmail', 'Email', 'Gmail', 'emailAddress', 'Email Address']),
+          college: getField(['college', 'College', 'institution', 'Institution']),
         };
       },
     });
@@ -161,11 +182,23 @@ export const createStudentsFromCSV = asyncHandler(async (req, res) => {
         continue;
       }
 
+      // Check if studentId already exists
+      const existingStudentId = await User.findOne({ studentId: validatedRecord.studentId.trim() });
+      if (existingStudentId) {
+        results.failed.push({
+          row: rowNumber,
+          email: validatedRecord.email,
+          reason: `Student ID "${validatedRecord.studentId}" already exists`,
+        });
+        continue;
+      }
+
       // Generate secure password
       const temporaryPassword = generateSecurePassword();
 
       // Create student
       const student = new User({
+        studentId: validatedRecord.studentId.trim(),
         name: validatedRecord.name,
         email: validatedRecord.email.toLowerCase(),
         college: validatedRecord.college,
@@ -293,7 +326,7 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
   const { status, acknowledgment } = req.body;
 
   // Find complaint with user details
-  const complaint = await Complaint.findById(id).populate('userId', 'name email');
+  const complaint = await Complaint.findById(id).populate('userId', 'name email studentId');
 
   if (!complaint) {
     throw new NotFoundError('Complaint not found');
@@ -340,7 +373,7 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
 
   // Fetch updated complaint with populated fields
   const updatedComplaint = await Complaint.findById(id)
-    .populate('userId', 'name email college')
+    .populate('userId', 'name email college studentId')
     .populate('resolvedBy', 'name email');
 
   res.status(200).json({

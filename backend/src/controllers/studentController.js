@@ -7,14 +7,12 @@
  * Security Considerations:
  * - Student-only access (enforced by middleware)
  * - Input validation for complaints
- * - File upload validation
  * - Users can only access their own complaints
  */
 
 import Complaint, { COMPLAINT_STATUS } from '../models/Complaint.js';
 import User from '../models/User.js';
 import { asyncHandler, ValidationError, NotFoundError } from '../middlewares/errorHandler.js';
-import { getFileUrl } from '../middlewares/upload.js';
 import { sendComplaintSubmittedEmail } from '../services/emailService.js';
 
 /**
@@ -70,11 +68,6 @@ export const submitComplaint = asyncHandler(async (req, res) => {
     status: COMPLAINT_STATUS.READ, // Initial status
   };
 
-  // Add image URL if file was uploaded
-  if (req.file) {
-    complaintData.imageUrl = getFileUrl(req.file.filename);
-  }
-
   const complaint = new Complaint(complaintData);
   await complaint.save();
 
@@ -98,7 +91,6 @@ export const submitComplaint = asyncHandler(async (req, res) => {
         complaintId: complaint.complaintId,
         subject: complaint.subject,
         content: complaint.content,
-        imageUrl: complaint.imageUrl,
         status: complaint.status,
         createdAt: complaint.createdAt,
       },
