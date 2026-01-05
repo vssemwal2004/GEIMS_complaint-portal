@@ -7,12 +7,6 @@ import toast from 'react-hot-toast';
 
 import api from '../services/api';
 
-import Navbar from '../components/navbar';
-import FooterRevealShell from '../components/FooterRevealShell';
-import HeroSection from '../HOMESECTION/HeroSection';
-import ComplaintsInfoSection from '../HOMESECTION/ComplaintsInfoSection';
-import ComplaintsAtGEIMS from '../HOMESECTION/ComplaintsAtGEIMS';
-
 const headingFont = Merriweather({
   subsets: ['latin'],
   weight: ['300', '400', '700', '900'],
@@ -84,27 +78,12 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className={[bodyFont.className, 'min-h-screen relative overflow-hidden'].join(' ')}>
-      {/* Render home page in background - fixed and behind everything */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <FooterRevealShell>
-          <Navbar />
-          <HeroSection />
-          <ComplaintsAtGEIMS />
-          <ComplaintsInfoSection />
-        </FooterRevealShell>
-      </div>
-
-      {/* Semi-transparent overlay */}
-      <div aria-hidden="true" className="fixed inset-0 z-10 bg-black/40" />
-
-      {/* Card layer */}
-      <div className="relative z-20 min-h-screen flex items-center justify-center px-4 py-12">
+    <div className={[bodyFont.className, 'min-h-screen bg-white flex items-center justify-center px-4 py-12'].join(' ')}>
         <div className="w-full max-w-4xl animate-fadeIn">
           <div className="overflow-hidden rounded-2xl bg-white shadow-xl relative">
             {/* Close button */}
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/Login')}
               className="absolute top-4 right-4 z-30 p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
               aria-label="Close"
               type="button"
@@ -221,7 +200,6 @@ const ResetPassword = () => {
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 };

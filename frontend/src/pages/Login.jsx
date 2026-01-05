@@ -74,7 +74,7 @@ const Login = () => {
   };
 
   return (
-    <div className={[bodyFont.className, 'min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-4 py-12'].join(' ')}>
+    <div className={[bodyFont.className, 'min-h-screen bg-white flex items-center justify-center px-4 py-12'].join(' ')}>
       <div className="w-full max-w-4xl animate-fadeIn">
         <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
           <div className="grid md:grid-cols-2">
