@@ -123,6 +123,7 @@ const complaintSchema = new mongoose.Schema(
 complaintSchema.index({ userId: 1, status: 1 });
 complaintSchema.index({ createdAt: -1 }); // For sorting by newest first
 complaintSchema.index({ complaintId: 1 }); // For searching by complaint ID
+complaintSchema.index({ userId: 1, createdAt: -1 }); // For user's daily complaint checks (optimized)
 
 /**
  * Pre-save middleware

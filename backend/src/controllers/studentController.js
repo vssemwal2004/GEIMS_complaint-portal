@@ -10,6 +10,7 @@
  * - Users can only access their own complaints
  */
 
+import mongoose from 'mongoose';
 import Complaint, { COMPLAINT_STATUS } from '../models/Complaint.js';
 import User from '../models/User.js';
 import { asyncHandler, ValidationError, NotFoundError } from '../middlewares/errorHandler.js';
@@ -27,34 +28,70 @@ import { sendComplaintSubmittedEmail } from '../services/emailService.js';
 export const submitComplaint = asyncHandler(async (req, res) => {
   const { subject, content } = req.body;
   const userId = req.userId;
+  const trimmedContent = content.trim();
 
-  // Check for duplicate complaint (same content within last hour)
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  const duplicateComplaint = await Complaint.findOne({
-    userId,
-    content: content.trim(),
-    createdAt: { $gte: oneHourAgo }
-  });
+  // Single optimized query to check all limits at once
+  const now = new Date();
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-  if (duplicateComplaint) {
-    return res.status(400).json({
-      success: false,
-      message: 'You have already submitted this complaint recently. Please wait before submitting again.',
-    });
-  }
+  // Use aggregation to get all checks in ONE database query
+  const [checks] = await Complaint.aggregate([
+    { 
+      $match: { 
+        userId: new mongoose.Types.ObjectId(userId),
+        createdAt: { $gte: startOfDay }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        dailyCount: { $sum: 1 },
+        hasRecentComplaint: {
+          $sum: { $cond: [{ $gte: ['$createdAt', fiveMinutesAgo] }, 1, 0] }
+        },
+        hasDuplicateContent: {
+          $sum: {
+            $cond: [
+              { 
+                $and: [
+                  { $gte: ['$createdAt', oneHourAgo] },
+                  { $eq: ['$content', trimmedContent] }
+                ]
+              },
+              1, 
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]);
 
-  // Check for recent submission (cooldown of 5 minutes between complaints)
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-  const recentComplaint = await Complaint.findOne({
-    userId,
-    createdAt: { $gte: fiveMinutesAgo }
-  });
+  // Check results (checks will be undefined if no complaints today)
+  if (checks) {
+    if (checks.dailyCount >= 5) {
+      return res.status(429).json({
+        success: false,
+        message: 'You have reached your daily complaint limit (5 per day). Please try again tomorrow.',
+      });
+    }
 
-  if (recentComplaint) {
-    return res.status(400).json({
-      success: false,
-      message: 'Please wait at least 5 minutes between complaints.',
-    });
+    if (checks.hasRecentComplaint > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please wait at least 5 minutes between complaints.',
+      });
+    }
+
+    if (checks.hasDuplicateContent > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already submitted this complaint recently. Please wait before submitting again.',
+      });
+    }
   }
 
   // Get user details for email
