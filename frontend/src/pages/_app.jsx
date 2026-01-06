@@ -1,5 +1,6 @@
 import '../index.css';
 
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
@@ -45,6 +46,16 @@ export default function App({ Component, pageProps }) {
 
   return (
     <AuthProvider>
+      <Head>
+        <title>GEIMS Complaint Portal</title>
+        <meta
+          name="description"
+          content="GEIMS Complaint Portal - Submit and track your complaints"
+        />
+        <link rel="icon" href="/geims-logo.webp" type="image/webp" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
+      </Head>
       {content}
       <Toaster
         position="top-right"
