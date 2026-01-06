@@ -1,40 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading, requirePasswordChange } = useAuth();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
-  // During SSR we can't read auth state from localStorage/cookies here,
-  // so we block rendering and let the client decide.
-  if (typeof window === 'undefined') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (loading || !router.isReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  const currentPath = (router.asPath || '').split('?')[0];
+  // All hooks must be called before any return statements
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    if (!router.isReady) return;
+    // Don't run on server or while loading
+    if (!isClient || loading || !router.isReady) return;
+
+    const currentPath = (router.asPath || '').split('?')[0];
 
     // Not authenticated - redirect to login
     if (!user) {
-      const from = router.asPath || '/';
-      const loginUrl = `/login?from=${encodeURIComponent(from)}`;
-      if (currentPath !== '/login') {
-        router.replace(loginUrl);
+      if (currentPath !== '/Login' && currentPath !== '/login') {
+        router.replace('/Login');
       }
       return;
     }
@@ -47,11 +34,20 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
     // Check role permissions
     if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-      router.replace(user.role === 'ADMIN' ? '/admin' : '/student');
+      router.replace(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard');
     }
-  }, [router, user, requirePasswordChange, allowedRoles, currentPath]);
+  }, [isClient, router, user, loading, requirePasswordChange, allowedRoles]);
 
-  // While redirecting, show loader
+  // Show loading spinner during SSR or while checking auth
+  if (!isClient || loading || !router.isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  // Not authenticated - show loading while redirecting
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -60,6 +56,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     );
   }
 
+  // Needs password change - show loading while redirecting
+  const currentPath = (router.asPath || '').split('?')[0];
   if (requirePasswordChange && currentPath !== '/change-password') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -68,6 +66,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     );
   }
 
+  // Wrong role - show loading while redirecting
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
