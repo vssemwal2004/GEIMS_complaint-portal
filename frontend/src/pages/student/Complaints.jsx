@@ -24,8 +24,7 @@ const StudentComplaints = () => {
         setComplaints(response.data.data.complaints);
         setPagination(response.data.data.pagination);
       }
-    } catch (error) {
-      console.error('Failed to fetch complaints:', error);
+    } catch {
     } finally {
       setLoading(false);
     }

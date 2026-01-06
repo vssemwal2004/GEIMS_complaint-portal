@@ -25,8 +25,7 @@ const StudentDashboard = () => {
         if (complaintsRes.data.success) {
           setRecentComplaints(complaintsRes.data.data.complaints);
         }
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
+      } catch {
       } finally {
         setLoading(false);
       }

@@ -48,8 +48,7 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
           setUser(null);
         }
-      } catch (error) {
-        console.error('Token verification failed:', error);
+      } catch {
         setToken(null);
         setUser(null);
       } finally {
@@ -92,8 +91,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       await api.post('/api/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
     } finally {
       setToken(null);
       setUser(null);
@@ -142,8 +140,7 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success) {
         setUser(response.data.data.user);
       }
-    } catch (error) {
-      console.error('Failed to refresh user:', error);
+    } catch {
     }
   }, []);
 

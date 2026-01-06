@@ -111,8 +111,7 @@ const AdminComplaints = () => {
       } else {
         setComplaints([]);
       }
-    } catch (error) {
-      console.error('Failed to fetch complaints:', error);
+    } catch {
       toast.error('Failed to load complaints');
       setComplaints([]);
     } finally {
@@ -218,8 +217,7 @@ const AdminComplaints = () => {
       } else {
         toast.error('Failed to update status');
       }
-    } catch (error) {
-      console.error('Failed to update status:', error);
+      } catch {
       toast.error('Failed to update status');
     } finally {
       setUpdating(false);

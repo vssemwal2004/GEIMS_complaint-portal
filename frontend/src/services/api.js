@@ -58,7 +58,6 @@ api.interceptors.response.use(
 
       // Rate limited
       if (status === 429) {
-        console.error('Rate limited. Please wait before trying again.');
       }
     }
 

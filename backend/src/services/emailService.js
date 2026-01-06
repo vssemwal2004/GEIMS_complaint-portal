@@ -54,6 +54,14 @@ const getFrontendBaseUrl = () => {
   return String(url || '').trim();
 };
 
+const getWebsiteUrl = () => {
+  const url =
+    process.env.GEIMS_WEBSITE_URL ||
+    process.env.WEBSITE_URL ||
+    'https://geims.geu.ac.in/sc';
+  return String(url || '').trim();
+};
+
 const getLogoUrl = () => {
   // Default logo (provided by user) – reliable absolute URL for email clients
   const defaultLogoUrl = 'https://geims.geu.ac.in/wp-content/uploads/2023/11/logo-1.png';
@@ -124,6 +132,7 @@ const emailStyles = `
  */
 const emailWrapper = (title, body, { preheader = '', logoSrc = '' } = {}) => {
   const year = new Date().getFullYear();
+  const websiteUrl = getWebsiteUrl();
 
   return `
 <!DOCTYPE html>
@@ -156,7 +165,21 @@ const emailWrapper = (title, body, { preheader = '', logoSrc = '' } = {}) => {
               </td>
             </tr>
             <tr>
-              <td class="content">${body}</td>
+              <td class="content">
+                ${body}
+                ${
+                  websiteUrl
+                    ? `
+                  <div class="divider"></div>
+                  <div style="text-align:center;">
+                    <a class="button" href="${escapeHtmlAttr(websiteUrl)}" target="_blank" rel="noopener noreferrer">Visit</a>
+                    <div class="muted" style="margin-top:10px;">If the button doesn’t work, copy and paste this link:</div>
+                    <div style="margin-top:6px;"><a href="${escapeHtmlAttr(websiteUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(websiteUrl)}</a></div>
+                  </div>
+                `
+                    : ''
+                }
+              </td>
             </tr>
             <tr>
               <td class="footer">
@@ -173,6 +196,18 @@ const emailWrapper = (title, body, { preheader = '', logoSrc = '' } = {}) => {
 `;
 };
 
+const appendVisitLinkToText = (text) => {
+  const websiteUrl = getWebsiteUrl();
+  if (!websiteUrl) return text;
+
+  const base = String(text || '').trim();
+  const suffix = `Visit: ${websiteUrl}`;
+
+  if (!base) return suffix;
+  if (base.includes(websiteUrl)) return base;
+  return `${base}\n\n${suffix}`;
+};
+
 const buildEmail = ({ subject, body, preheader, text }) => {
   const logoUrl = getLogoUrl();
 
@@ -182,7 +217,7 @@ const buildEmail = ({ subject, body, preheader, text }) => {
   return {
     html: emailWrapper(subject, body, { preheader, logoSrc: logoUrl }),
     attachments: [],
-    text,
+    text: appendVisitLinkToText(text),
   };
 };
 
