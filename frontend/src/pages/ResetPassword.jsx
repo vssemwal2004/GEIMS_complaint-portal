@@ -96,7 +96,7 @@ const ResetPassword = () => {
               <div className="flex items-center justify-center p-10 bg-[rgb(var(--color-section-bg))]">
                 <div className="text-center">
                   <img
-                    src="/geims-logo.png"
+                    src="/geims-logo.webp"
                     alt="GEIMS logo"
                     className="mx-auto h-10 w-auto"
                     loading="eager"

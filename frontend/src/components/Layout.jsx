@@ -78,7 +78,7 @@ const Layout = ({ children }) => {
               <div className="flex items-center gap-8">
                 <Link href="/admin" className="flex items-center gap-2">
                   <Image
-                    src="/geims-logo.png"
+                    src="/geims-logo.webp"
                     alt="GEIMS"
                     width={80}
                     height={32}
@@ -216,7 +216,7 @@ const Layout = ({ children }) => {
             {/* Left: Logo */}
             <Link href="/student" className="flex items-center gap-2">
               <Image
-                src="/geims-logo.png"
+                src="/geims-logo.webp"
                 alt="GEIMS"
                 width={80}
                 height={32}

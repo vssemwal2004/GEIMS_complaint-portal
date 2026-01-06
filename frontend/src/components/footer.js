@@ -7,7 +7,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <img
-                  src="/geims-logo.png"
+                  src="/geims-logo.webp"
                   alt="GEIMS logo"
                   width={120}
                   height={40}

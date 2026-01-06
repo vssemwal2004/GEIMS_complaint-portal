@@ -332,6 +332,11 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
     throw new NotFoundError('Complaint not found');
   }
 
+  // Once a complaint is resolved, it cannot be updated again.
+  if (complaint.status === COMPLAINT_STATUS.RESOLVED) {
+    throw new ValidationError('Resolved complaints cannot be updated');
+  }
+
   // Update status
   complaint.status = status;
 

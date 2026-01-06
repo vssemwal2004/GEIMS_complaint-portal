@@ -207,9 +207,27 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     message: 'If an account exists for that email, a password reset link has been sent.',
   };
 
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const user = await User.findOne({ email: email.toLowerCase() }).select(
+    '+forgotPasswordConsecutiveCount +forgotPasswordLastRequestedAt +forgotPasswordCooldownUntil'
+  );
   if (!user || !user.isActive) {
     return res.status(200).json(genericResponse);
+  }
+
+  const now = new Date();
+
+  // If user is currently in cooldown, block with the exact message requested.
+  if (user.forgotPasswordCooldownUntil && user.forgotPasswordCooldownUntil > now) {
+    return res.status(429).json({
+      success: false,
+      message: 'You have exceeded the limit. Please try again after 1 hour.',
+    });
+  }
+
+  // Cooldown expired -> reset counters so the user can try again.
+  if (user.forgotPasswordCooldownUntil && user.forgotPasswordCooldownUntil <= now) {
+    user.forgotPasswordCooldownUntil = undefined;
+    user.forgotPasswordConsecutiveCount = 0;
   }
 
   const rawToken = crypto.randomBytes(32).toString('hex');
@@ -219,6 +237,13 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
   user.passwordResetTokenHash = tokenHash;
   user.passwordResetExpires = expiresAt;
+
+  // Increment consecutive count and set cooldown after the 2nd successful send.
+  user.forgotPasswordConsecutiveCount = (user.forgotPasswordConsecutiveCount || 0) + 1;
+  user.forgotPasswordLastRequestedAt = now;
+  if (user.forgotPasswordConsecutiveCount >= 2) {
+    user.forgotPasswordCooldownUntil = new Date(now.getTime() + 60 * 60 * 1000);
+  }
   await user.save();
 
   const frontendBaseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
@@ -256,6 +281,10 @@ export const resetPassword = asyncHandler(async (req, res) => {
   user.forcePasswordChange = false;
   user.passwordResetTokenHash = undefined;
   user.passwordResetExpires = undefined;
+
+  // Reset forgot-password cooldown state once the password is successfully reset.
+  user.forgotPasswordConsecutiveCount = 0;
+  user.forgotPasswordCooldownUntil = undefined;
   await user.save();
 
   // Optional confirmation

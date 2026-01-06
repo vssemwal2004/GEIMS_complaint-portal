@@ -50,7 +50,11 @@ const ForgotPassword = () => {
       }
     } catch (err) {
       const message = err.response?.data?.message || 'Unable to process your request right now.';
-      toast.error(message);
+      if (message === 'You have exceeded the limit. Please try again after 1 hour.') {
+        setError(message);
+      } else {
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -75,7 +79,7 @@ const ForgotPassword = () => {
               <div className="flex items-center justify-center p-10 bg-[rgb(var(--color-section-bg))]">
                 <div className="text-center">
                   <img
-                    src="/geims-logo.png"
+                    src="/geims-logo.webp"
                     alt="GEIMS logo"
                     className="mx-auto h-10 w-auto"
                     loading="eager"

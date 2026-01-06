@@ -32,6 +32,18 @@ const escapeHtml = (text) => {
   return validator.escape(String(text || ''));
 };
 
+// For HTML attribute values (href/src). Do NOT escape forward slashes,
+// as some email clients fail to load URLs containing entities like "&#x2F;".
+const escapeHtmlAttr = (value) => {
+  const text = String(value || '');
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+};
+
 const getFrontendBaseUrl = () => {
   const url =
     process.env.FRONTEND_BASE_URL ||
@@ -54,7 +66,7 @@ const getLogoUrl = () => {
 
   const baseUrl = getFrontendBaseUrl();
   if (!baseUrl) return '';
-  return `${baseUrl.replace(/\/$/, '')}/geims-logo.png`;
+  return `${baseUrl.replace(/\/$/, '')}/geims-logo.webp`;
 };
 
 const buildLogoBlock = ({ src }) => {
@@ -64,7 +76,7 @@ const buildLogoBlock = ({ src }) => {
   // Keep inline styles for maximum email-client compatibility.
   return `
     <img
-      src="${escapeHtml(src)}"
+      src="${escapeHtmlAttr(src)}"
       alt="GEIMS"
       width="160"
       height="48"
@@ -325,7 +337,7 @@ export const sendPasswordResetEmail = async ({ email, name, resetUrl, expiresMin
     <div class="divider"></div>
 
     <p style="margin: 0 0 16px 0;">
-      <a class="button" href="${escapeHtml(resetUrl)}">Reset Password</a>
+      <a class="button" href="${escapeHtmlAttr(resetUrl)}">Reset Password</a>
     </p>
 
     <p class="muted" style="margin: 0;">

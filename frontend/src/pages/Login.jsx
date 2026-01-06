@@ -82,7 +82,7 @@ const Login = () => {
             <div className="flex items-center justify-center p-10 bg-gradient-to-br from-slate-800 to-slate-900">
               <div className="text-center">
                 <img
-                  src="/geims-logo.png"
+                  src="/geims-logo.webp"
                   alt="GEIMS logo"
                   className="mx-auto h-12 w-auto"
                   loading="eager"

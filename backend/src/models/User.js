@@ -95,6 +95,22 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+
+    // Forgot-password cooldown (DB-backed to survive restarts)
+    forgotPasswordConsecutiveCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      select: false,
+    },
+    forgotPasswordLastRequestedAt: {
+      type: Date,
+      select: false,
+    },
+    forgotPasswordCooldownUntil: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt

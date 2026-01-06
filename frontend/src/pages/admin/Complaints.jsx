@@ -488,16 +488,23 @@ const AdminComplaints = () => {
             </div>
 
             <div className="px-5 py-4 border-t border-gray-200">
+              {(() => {
+                const isResolved = selectedComplaint.status === 'RESOLVED';
+                return (
               <button
                 type="button"
                 onClick={() => {
+                  if (isResolved) return;
                   setShowActionModal(true);
                   setNewStatus(selectedComplaint.status || 'SUBMITTED');
                 }}
-                className="h-9 w-full rounded-md border border-blue-600 bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                disabled={isResolved}
+                className="h-9 w-full rounded-md border border-blue-600 bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Update Status
               </button>
+                );
+              })()}
             </div>
           </div>
         )}
