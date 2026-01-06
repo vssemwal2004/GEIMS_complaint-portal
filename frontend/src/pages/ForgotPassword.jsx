@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { FiMail, FiAlertCircle, FiX } from 'react-icons/fi';
+import { FiMail, FiAlertCircle, FiX, FiClock } from 'react-icons/fi';
 import { Merriweather, Plus_Jakarta_Sans } from 'next/font/google';
 import toast from 'react-hot-toast';
 
@@ -23,6 +23,64 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [cooldownData, setCooldownData] = useState(null);
+  const [remainingTime, setRemainingTime] = useState(0);
+
+  // Check cooldown status when email changes
+  useEffect(() => {
+    if (!email || !isValidEmail(email.trim())) {
+      setCooldownData(null);
+      setRemainingTime(0);
+      return;
+    }
+
+    const checkCooldown = async () => {
+      try {
+        const res = await api.post('/api/auth/check-forgot-cooldown', { email: email.trim() });
+        if (res.data?.success && res.data.data?.isBlocked) {
+          setCooldownData(res.data.data);
+          setRemainingTime(res.data.data.remainingSeconds);
+        } else {
+          setCooldownData(null);
+          setRemainingTime(0);
+        }
+      } catch (err) {
+        // Ignore errors on cooldown check
+        setCooldownData(null);
+        setRemainingTime(0);
+      }
+    };
+
+    const debounce = setTimeout(checkCooldown, 500);
+    return () => clearTimeout(debounce);
+  }, [email]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (remainingTime <= 0) {
+      setCooldownData(null);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRemainingTime((prev) => {
+        if (prev <= 1) {
+          setCooldownData(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [remainingTime]);
+
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours}h ${minutes}m ${secs}s`;
+  };
 
   const isValidEmail = (value) => {
     // Minimal email validation (backend does the authoritative validation)
@@ -39,22 +97,35 @@ const ForgotPassword = () => {
       return;
     }
 
+    if (cooldownData?.isBlocked) {
+      setError(`Too many attempts. Please try again in ${formatTime(remainingTime)}`);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await api.post('/api/auth/forgot-password', { email: trimmedEmail });
       if (res.data?.success) {
         toast.success('If an account exists for that email, a reset link has been sent.');
         setEmail('');
+        // Recheck cooldown status after sending
+        setTimeout(async () => {
+          try {
+            const cooldownRes = await api.post('/api/auth/check-forgot-cooldown', { email: trimmedEmail });
+            if (cooldownRes.data?.success && cooldownRes.data.data?.isBlocked) {
+              setCooldownData(cooldownRes.data.data);
+              setRemainingTime(cooldownRes.data.data.remainingSeconds);
+            }
+          } catch (err) {
+            // Ignore
+          }
+        }, 500);
       } else {
         toast.error('Unable to process your request right now.');
       }
     } catch (err) {
       const message = err.response?.data?.message || 'Unable to process your request right now.';
-      if (message === 'You have exceeded the limit. Please try again after 1 hour.') {
-        setError(message);
-      } else {
-        toast.error(message);
-      }
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -79,7 +150,7 @@ const ForgotPassword = () => {
               <div className="flex items-center justify-center p-10 bg-[rgb(var(--color-section-bg))]">
                 <div className="text-center">
                   <img
-                    src="/geims-logo.webp"
+                    src="/sc/geims-logo.webp"
                     alt="GEIMS logo"
                     className="mx-auto h-10 w-auto"
                     loading="eager"
@@ -116,6 +187,16 @@ const ForgotPassword = () => {
                   </div>
                 )}
 
+                {cooldownData?.isBlocked && remainingTime > 0 && (
+                  <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3 text-amber-700">
+                    <FiClock className="mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-semibold">Too many attempts</p>
+                      <p className="mt-1">You can try again in <span className="font-mono font-semibold">{formatTime(remainingTime)}</span></p>
+                    </div>
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
@@ -138,10 +219,10 @@ const ForgotPassword = () => {
 
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || (cooldownData?.isBlocked && remainingTime > 0)}
                     className="w-full rounded-lg bg-[rgb(var(--color-accent-green))] px-4 py-3 font-semibold text-[rgb(var(--color-on-accent))] hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-accent-green))] focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loading ? 'Sending...' : 'Send Reset Link'}
+                    {loading ? 'Sending...' : cooldownData?.isBlocked && remainingTime > 0 ? `Wait ${formatTime(remainingTime)}` : 'Send Reset Link'}
                   </button>
 
                   <div className="pt-2">

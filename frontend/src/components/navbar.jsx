@@ -83,7 +83,7 @@ export default function Navbar() {
         <div className="mx-auto max-w-6xl px-6 sm:px-10 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3" onClick={onHomeClick}>
               <Image
-                src="/geims-logo.webp"
+                src="/sc/geims-logo.webp"
               alt="GEIMS logo"
               width={120}
               height={40}
@@ -114,7 +114,7 @@ export default function Navbar() {
         <div className="mx-auto max-w-6xl px-6 sm:px-10 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3" onClick={onHomeClick}>
               <Image
-                src="/geims-logo.webp"
+                src="/sc/geims-logo.webp"
               alt="GEIMS logo"
               width={120}
               height={40}

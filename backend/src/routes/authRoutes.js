@@ -56,6 +56,18 @@ router.post(
 );
 
 /**
+ * @route   POST /api/auth/check-forgot-cooldown
+ * @desc    Check if email is in forgot password cooldown
+ * @access  Public (rate limited)
+ */
+router.post(
+  '/check-forgot-cooldown',
+  forgotPasswordLimiter,
+  validateBody(forgotPasswordSchema),
+  authController.checkForgotCooldown
+);
+
+/**
  * @route   POST /api/auth/reset-password
  * @desc    Reset password using emailed token
  * @access  Public (rate limited)

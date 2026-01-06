@@ -52,7 +52,7 @@ export default function App({ Component, pageProps }) {
           name="description"
           content="GEIMS Complaint Portal - Submit and track your complaints"
         />
-        <link rel="icon" href="/geims-logo.webp" type="image/webp" />
+        <link rel="icon" href="/sc/geims-logo.webp" type="image/webp" />
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/favicon.png" />
       </Head>
