@@ -6,7 +6,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "migrate:complaint-ids": "node src/scripts/migrateComplaintIdsToGEIMS.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -139,6 +139,7 @@ const AdminComplaints = () => {
       .filter((c) => {
         if (!query) return true;
         return (
+          (c?.subject || '').toLowerCase().includes(query) ||
           (c?.content || '').toLowerCase().includes(query) ||
           (c?.userId?.name || '').toLowerCase().includes(query) ||
           (c?.userId?.email || '').toLowerCase().includes(query)
@@ -362,8 +363,8 @@ const AdminComplaints = () => {
             filteredComplaints.map((c) => {
               const active = c?._id === selectedComplaintId;
               const name = c?.userId?.name || 'Unknown';
-              const email = c?.userId?.email || '';
-              const preview = (c?.content || '').replace(/\s+/g, ' ').trim();
+              const subject = (c?.subject || '').replace(/\s+/g, ' ').trim();
+              const complaintId = c?.complaintId || c?._id;
 
               return (
                 <button
@@ -381,14 +382,14 @@ const AdminComplaints = () => {
                         <p className="text-xs font-semibold text-gray-900 truncate" title={name}>
                           {name}
                         </p>
-                        {email ? (
-                          <p className="text-[11px] text-gray-500 truncate" title={email}>
-                            {email}
+                        {complaintId ? (
+                          <p className="text-[11px] text-gray-500 truncate font-mono" title={complaintId}>
+                            {complaintId}
                           </p>
                         ) : null}
                       </div>
-                      <p className="mt-0.5 text-[11px] text-gray-600 truncate" title={preview}>
-                        {preview || '—'}
+                      <p className="mt-0.5 text-[11px] text-gray-600 truncate" title={subject}>
+                        {subject || '—'}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -456,6 +457,15 @@ const AdminComplaints = () => {
             <div className="flex-1 overflow-y-auto px-5 py-4">
               <div className="space-y-4">
                 <div>
+                  <p className="text-xs font-semibold text-gray-700">Subject</p>
+                  <div className="mt-2 rounded-md border border-gray-200 bg-white px-4 py-3">
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">
+                      {selectedComplaint.subject || '—'}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
                   <p className="text-xs font-semibold text-gray-700">Complaint</p>
                   <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-4 py-3">
                     <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">
@@ -463,29 +473,6 @@ const AdminComplaints = () => {
                     </p>
                   </div>
                 </div>
-
-                {selectedComplaint.attachment ? (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-700">Attachment</p>
-                    <div className="mt-2">
-                      <a
-                        href={selectedComplaint.attachment}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-700 hover:underline break-all"
-                      >
-                        Open attachment
-                      </a>
-                      <div className="mt-3">
-                        <img
-                          src={selectedComplaint.attachment}
-                          alt="Complaint attachment"
-                          className="max-w-full rounded-md border border-gray-200"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
 
                 {selectedComplaint.acknowledgment ? (
                   <div>

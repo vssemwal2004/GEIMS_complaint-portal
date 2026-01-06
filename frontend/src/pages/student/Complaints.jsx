@@ -129,19 +129,6 @@ const StudentComplaints = () => {
                 </div>
               </div>
 
-              {selectedComplaint.imageUrl && (
-                <div>
-                  <p className="text-xs text-gray-500">Attachment</p>
-                  <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
-                    <img
-                      src={selectedComplaint.imageUrl}
-                      alt="Complaint attachment"
-                      className="w-full max-h-80 object-contain"
-                    />
-                  </div>
-                </div>
-              )}
-
               {selectedComplaint.acknowledgment && (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
                   <p className="text-xs font-medium text-gray-700">Admin Response</p>
@@ -268,7 +255,6 @@ const StudentComplaints = () => {
                     <th className="text-left font-medium px-4 py-2">Date</th>
                     <th className="text-left font-medium px-4 py-2">Subject</th>
                     <th className="text-left font-medium px-4 py-2">Status</th>
-                    <th className="text-left font-medium px-4 py-2">Attachment</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -293,9 +279,6 @@ const StudentComplaints = () => {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <StatusBadge status={complaint.status} />
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {complaint.imageUrl ? 'Yes' : '—'}
                       </td>
                     </tr>
                   ))}

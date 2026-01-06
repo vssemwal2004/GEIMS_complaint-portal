@@ -21,12 +21,12 @@ export const COMPLAINT_STATUS = {
 };
 
 /**
- * Generate complaint ID in format GEHU + 6 random digits
+ * Generate complaint ID in format GEIMS + 6 random digits
  * @returns {string}
  */
 const generateComplaintId = () => {
   const randomDigits = Math.floor(100000 + Math.random() * 900000); // 6 digits
-  return `GEHU${randomDigits}`;
+  return `GEIMS${randomDigits}`;
 };
 
 const complaintSchema = new mongoose.Schema(

@@ -374,7 +374,7 @@ export const sendPasswordResetEmail = async ({ email, name, resetUrl, expiresMin
  * @param {Object} params
  * @param {string} params.email - Student email
  * @param {string} params.name - Student name
- * @param {string} params.complaintId - Complaint ID (GEHU + 6 digits)
+ * @param {string} params.complaintId - Complaint ID (GEIMS + 6 digits)
  * @param {string} params.subject - Complaint subject
  * @param {string} params.content - Complaint body/content
  * @returns {Promise<Object>}
