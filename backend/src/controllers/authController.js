@@ -216,12 +216,25 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
   const now = new Date();
 
+  // "2 consecutive" window (default 15 minutes). If requests are far apart,
+  // we reset the consecutive counter.
+  const windowMinutesRaw = process.env.FORGOT_PASSWORD_CONSECUTIVE_WINDOW_MINUTES;
+  const windowMinutes = Number.isFinite(Number(windowMinutesRaw))
+    ? Math.max(1, Number(windowMinutesRaw))
+    : 15;
+  const windowMs = windowMinutes * 60 * 1000;
+
+  if (
+    user.forgotPasswordLastRequestedAt &&
+    now.getTime() - user.forgotPasswordLastRequestedAt.getTime() > windowMs
+  ) {
+    user.forgotPasswordConsecutiveCount = 0;
+  }
+
   // If user is currently in cooldown, block with the exact message requested.
   if (user.forgotPasswordCooldownUntil && user.forgotPasswordCooldownUntil > now) {
-    return res.status(429).json({
-      success: false,
-      message: 'You have exceeded the limit. Please try again after 1 hour.',
-    });
+    // IMPORTANT: Do NOT reveal cooldown publicly (prevents email enumeration).
+    return res.status(200).json(genericResponse);
   }
 
   // Cooldown expired -> reset counters so the user can try again.

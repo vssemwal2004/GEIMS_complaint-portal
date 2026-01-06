@@ -7,8 +7,14 @@ frontend/out
 
 # env
 .env
+.env.local
+.env.production
 backend/.env
+backend/.env.local
+backend/.env.production
 frontend/.env.local
+frontend/.env
+frontend/.env.production
 
 # logs
 npm-debug.log*

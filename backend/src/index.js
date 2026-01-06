@@ -55,6 +55,26 @@ const PORT = parseInt(process.env.PORT, 10) || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+const parseAllowedOrigins = (value) => {
+  if (!value) return [];
+  return String(value)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
+const devOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
+const allowedOrigins = new Set([
+  ...parseAllowedOrigins(FRONTEND_URL),
+  ...(NODE_ENV === 'development' ? devOrigins : []),
+]);
+
 // ===========================================
 // SECURITY MIDDLEWARE
 // ===========================================
@@ -66,8 +86,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'blob:', '*'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
       scriptSrc: ["'self'"],
     },
   },
@@ -76,7 +99,12 @@ app.use(helmet({
 // CORS - Cross-Origin Resource Sharing
 // Only allow requests from frontend URL
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: (origin, callback) => {
+    // Allow non-browser tools (no Origin header)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

@@ -78,6 +78,23 @@ export const passwordResetLimiter = rateLimit({
 });
 
 /**
+ * Forgot password rate limiter - 5 requests per hour per IP
+ * IMPORTANT: Always responds with a generic 200 to prevent email enumeration.
+ */
+export const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'If an account exists for that email, a password reset link has been sent.',
+    });
+  },
+});
+
+/**
  * Complaint rate limiter - 10 complaints per hour per IP
  * (User-specific daily limit of 5 is enforced in the controller via database)
  */
@@ -106,6 +123,7 @@ export default {
   apiLimiter,
   uploadLimiter,
   passwordResetLimiter,
+  forgotPasswordLimiter,
   complaintLimiter,
   complaintCooldownLimiter,
 };

@@ -13,7 +13,7 @@
 import express from 'express';
 import authController from '../controllers/authController.js';
 import { authenticate } from '../middlewares/auth.js';
-import { loginLimiter, passwordResetLimiter } from '../middlewares/rateLimiter.js';
+import { loginLimiter, passwordResetLimiter, forgotPasswordLimiter } from '../middlewares/rateLimiter.js';
 import { validateBody } from '../middlewares/validate.js';
 import { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/schemas.js';
 
@@ -50,7 +50,7 @@ router.post(
  */
 router.post(
   '/forgot-password',
-  passwordResetLimiter,
+  forgotPasswordLimiter,
   validateBody(forgotPasswordSchema),
   authController.forgotPassword
 );
