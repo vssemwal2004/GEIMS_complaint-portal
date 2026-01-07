@@ -211,7 +211,10 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     '+forgotPasswordConsecutiveCount +forgotPasswordLastRequestedAt +forgotPasswordCooldownUntil'
   );
   if (!user || !user.isActive) {
-    return res.status(200).json(genericResponse);
+    return res.status(404).json({
+      success: false,
+      message: 'Wrong email. This email is not registered.',
+    });
   }
 
   const now = new Date();
