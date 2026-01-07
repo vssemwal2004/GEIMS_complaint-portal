@@ -60,8 +60,13 @@ const ChangePassword = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters');
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters');
+      return;
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      setError('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)');
       return;
     }
 
@@ -211,7 +216,7 @@ const ChangePassword = () => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="block w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-                    placeholder="Enter new password (min 6 characters)"
+                    placeholder="Min 8 chars with special character (!@#$...)"
                     required
                   />
                   <button
