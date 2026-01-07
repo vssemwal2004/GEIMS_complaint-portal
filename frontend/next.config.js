@@ -1,16 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  basePath: '/sc',
+  assetPrefix: '/sc',
+  trailingSlash: false,
 
   async rewrites() {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
     return [
-      // Backend proxy (replaces Vite dev server proxy)
       { source: '/api/:path*', destination: `${backendUrl}/api/:path*` },
       { source: '/uploads/:path*', destination: `${backendUrl}/uploads/:path*` },
 
-      // Root + auth
-      { source: '/', destination: '/Login' },
+      // Auth routes
       { source: '/login', destination: '/Login' },
       { source: '/forgot-password', destination: '/ForgotPassword' },
       { source: '/reset-password', destination: '/ResetPassword' },
@@ -33,4 +34,3 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-
