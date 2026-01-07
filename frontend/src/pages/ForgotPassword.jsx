@@ -108,23 +108,21 @@ const ForgotPassword = () => {
       if (res.data?.success) {
         toast.success('If an account exists for that email, a reset link has been sent.');
         
-        // Recheck cooldown status after sending
-        setTimeout(async () => {
-          try {
-            const cooldownRes = await api.post('/api/auth/check-forgot-cooldown', { email: trimmedEmail });
-            if (cooldownRes.data?.success && cooldownRes.data.data?.isBlocked) {
-              setCooldownData(cooldownRes.data.data);
-              setRemainingTime(cooldownRes.data.data.remainingSeconds);
-              // Don't clear email if user is now in cooldown
-            } else {
-              // Only clear email if not in cooldown
-              setEmail('');
-            }
-          } catch (err) {
-            // Clear email on error
+        // Immediately recheck cooldown status after sending
+        try {
+          const cooldownRes = await api.post('/api/auth/check-forgot-cooldown', { email: trimmedEmail });
+          if (cooldownRes.data?.success && cooldownRes.data.data?.isBlocked) {
+            setCooldownData(cooldownRes.data.data);
+            setRemainingTime(cooldownRes.data.data.remainingSeconds);
+            // Don't clear email if user is now in cooldown
+          } else {
+            // Only clear email if not in cooldown
             setEmail('');
           }
-        }, 500);
+        } catch (err) {
+          // Clear email on error
+          setEmail('');
+        }
       } else {
         toast.error('Unable to process your request right now.');
       }

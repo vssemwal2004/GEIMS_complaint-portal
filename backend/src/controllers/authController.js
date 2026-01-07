@@ -231,17 +231,22 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     user.forgotPasswordLastRequestedAt &&
     now.getTime() - user.forgotPasswordLastRequestedAt.getTime() > windowMs
   ) {
+    console.log(`Resetting consecutive count for ${user.email} (outside ${windowMinutes}min window)`);
     user.forgotPasswordConsecutiveCount = 0;
   }
 
   // If user is currently in cooldown, block with the exact message requested.
   if (user.forgotPasswordCooldownUntil && user.forgotPasswordCooldownUntil > now) {
+    const remainingMs = user.forgotPasswordCooldownUntil - now;
+    const remainingMin = Math.ceil(remainingMs / 60000);
+    console.log(`🚫 User ${user.email} blocked - ${remainingMin}min remaining in cooldown`);
     // IMPORTANT: Do NOT reveal cooldown publicly (prevents email enumeration).
     return res.status(200).json(genericResponse);
   }
 
   // Cooldown expired -> reset counters so the user can try again.
   if (user.forgotPasswordCooldownUntil && user.forgotPasswordCooldownUntil <= now) {
+    console.log(`Cooldown expired for ${user.email}, resetting counters`);
     user.forgotPasswordCooldownUntil = undefined;
     user.forgotPasswordConsecutiveCount = 0;
   }
@@ -285,6 +290,9 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   user.forgotPasswordLastRequestedAt = now;
   if (shouldSetCooldown) {
     user.forgotPasswordCooldownUntil = cooldownUntil;
+    console.log(`⏰ Cooldown set for ${user.email} - Count: ${newCount}, Expires: ${cooldownUntil.toISOString()}`);
+  } else {
+    console.log(`✅ Count incremented for ${user.email} - Count: ${newCount}`);
   }
   await user.save();
 
