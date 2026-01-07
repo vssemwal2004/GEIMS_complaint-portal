@@ -399,21 +399,16 @@ export const sendPasswordResetEmail = async ({ email, name, resetUrl, expiresMin
     'If you did not request a password reset, you can safely ignore this email.',
   ].join('\n');
 
-  try {
-    const info = await sendBrandedMail({
-      to: email,
-      subject,
-      body,
-      preheader: 'Password reset requested. Link expires soon.',
-      text,
-    });
+  const info = await sendBrandedMail({
+    to: email,
+    subject,
+    body,
+    preheader: 'Password reset requested. Link expires soon.',
+    text,
+  });
 
-    console.log(`✅ Password reset email sent to ${email}`);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error(`❌ Failed to send password reset email to ${email}:`, error.message);
-    return { success: false, error: error.message };
-  }
+  console.log(`✅ Password reset email sent to ${email}`);
+  return { success: true, messageId: info.messageId };
 };
 
 /**

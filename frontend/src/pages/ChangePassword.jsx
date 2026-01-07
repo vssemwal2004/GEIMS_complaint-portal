@@ -81,6 +81,7 @@ const ChangePassword = () => {
       const response = await api.post('/api/auth/change-password', {
         currentPassword,
         newPassword,
+        confirmPassword,
       });
 
       if (response.data.success) {
