@@ -251,24 +251,39 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   user.passwordResetTokenHash = tokenHash;
   user.passwordResetExpires = expiresAt;
 
-  // Increment consecutive count and set cooldown after the 2nd successful send.
-  user.forgotPasswordConsecutiveCount = (user.forgotPasswordConsecutiveCount || 0) + 1;
-  user.forgotPasswordLastRequestedAt = now;
-  if (user.forgotPasswordConsecutiveCount >= 2) {
-    // Set 2-hour cooldown (2 * 60 * 60 * 1000 ms)
-    user.forgotPasswordCooldownUntil = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-  }
-  await user.save();
+  // Prepare count increment and cooldown BEFORE sending email
+  const newCount = (user.forgotPasswordConsecutiveCount || 0) + 1;
+  const shouldSetCooldown = newCount >= 2;
+  const cooldownUntil = shouldSetCooldown ? new Date(now.getTime() + 2 * 60 * 60 * 1000) : undefined;
 
+  // Generate reset URL
   const frontendBaseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
   const resetUrl = `${frontendBaseUrl.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
 
-  sendPasswordResetEmail({
-    email: user.email,
-    name: user.name,
-    resetUrl,
-    expiresMinutes,
-  }).catch((err) => console.error('Failed to send password reset email:', err));
+  // CRITICAL: Send email FIRST - if it fails, don't increment counter
+  try {
+    await sendPasswordResetEmail({
+      email: user.email,
+      name: user.name,
+      resetUrl,
+      expiresMinutes,
+    });
+  } catch (err) {
+    console.error('Failed to send password reset email:', err);
+    // Email failed - do NOT update DB, return error
+    return res.status(500).json({
+      success: false,
+      message: 'Cannot send the mail. Please try again later.',
+    });
+  }
+
+  // Email sent successfully - NOW update database
+  user.forgotPasswordConsecutiveCount = newCount;
+  user.forgotPasswordLastRequestedAt = now;
+  if (shouldSetCooldown) {
+    user.forgotPasswordCooldownUntil = cooldownUntil;
+  }
+  await user.save();
 
   return res.status(200).json(genericResponse);
 });

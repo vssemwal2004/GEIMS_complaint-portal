@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -26,18 +25,6 @@ const ForgotPassword = () => {
   const [error, setError] = useState('');
   const [cooldownData, setCooldownData] = useState(null);
   const [remainingTime, setRemainingTime] = useState(0);
-
-  const isValidEmail = (value) => {
-    // Minimal email validation (backend does the authoritative validation)
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
-  };
-
-  const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours}h ${minutes}m ${secs}s`;
-  };
 
   // Check cooldown status when email changes
   useEffect(() => {
@@ -88,6 +75,18 @@ const ForgotPassword = () => {
     return () => clearInterval(interval);
   }, [remainingTime]);
 
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours}h ${minutes}m ${secs}s`;
+  };
+
+  const isValidEmail = (value) => {
+    // Minimal email validation (backend does the authoritative validation)
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -108,7 +107,7 @@ const ForgotPassword = () => {
       const res = await api.post('/api/auth/forgot-password', { email: trimmedEmail });
       if (res.data?.success) {
         toast.success('If an account exists for that email, a reset link has been sent.');
-        setEmail('');
+        
         // Recheck cooldown status after sending
         setTimeout(async () => {
           try {
@@ -116,9 +115,14 @@ const ForgotPassword = () => {
             if (cooldownRes.data?.success && cooldownRes.data.data?.isBlocked) {
               setCooldownData(cooldownRes.data.data);
               setRemainingTime(cooldownRes.data.data.remainingSeconds);
+              // Don't clear email if user is now in cooldown
+            } else {
+              // Only clear email if not in cooldown
+              setEmail('');
             }
           } catch (err) {
-            // Ignore
+            // Clear email on error
+            setEmail('');
           }
         }, 500);
       } else {
@@ -244,4 +248,3 @@ const ForgotPassword = () => {
 };
 
 export default ForgotPassword;
-
