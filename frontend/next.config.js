@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  basePath: process.env.NODE_ENV === 'production' ? '/sc' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/sc' : '',
+  basePath: '/sc',
+  assetPrefix: '/sc',
   trailingSlash: false,
 
   async rewrites() {
