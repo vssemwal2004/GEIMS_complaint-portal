@@ -1,11 +1,3 @@
-/**
- * Rate Limiting Middleware
- * 
- * Optimized for low-memory environments (512MB free tier).
- * Uses IP-based limiting to keep memory usage bounded.
- * User-specific limits (like 5 complaints/day) handled at database level.
- */
-
 import rateLimit from 'express-rate-limit';
 
 /**
@@ -78,18 +70,35 @@ export const passwordResetLimiter = rateLimit({
 });
 
 /**
- * Forgot password rate limiter - 5 requests per hour per IP
- * IMPORTANT: Always responds with a generic 200 to prevent email enumeration.
+ * Forgot password rate limiter - 2 requests per 2 hours **per IP + email**
  */
 export const forgotPasswordLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
+  windowMs: 2 * 60 * 60 * 1000, // 2 hours
+  max: 2,
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(200).json({
-      success: true,
-      message: 'If an account exists for that email, a password reset link has been sent.',
+  keyGenerator: (req /*, res */) => {
+    const ip =
+      req.ip ||
+      (req.headers['x-forwarded-for']
+        ? String(req.headers['x-forwarded-for']).split(',')[0].trim()
+        : '') ||
+      (req.connection && req.connection.remoteAddress) ||
+      'unknown-ip';
+
+    const email = (req.body && req.body.email ? String(req.body.email) : '').toLowerCase();
+
+    return `${ip}:${email}`;
+  },
+  handler: (req, res /*, next */) => {
+    const retryAfterSeconds = req.rateLimit?.resetTime
+      ? Math.max(0, Math.round((req.rateLimit.resetTime.getTime() - Date.now()) / 1000))
+      : 2 * 60 * 60;
+
+    res.status(429).json({
+      success: false,
+      message: 'Reset link limit reached for this email from this device. Please try again later.',
+      retryAfter: retryAfterSeconds,
     });
   },
 });

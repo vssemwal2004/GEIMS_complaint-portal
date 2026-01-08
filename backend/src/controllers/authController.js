@@ -197,19 +197,18 @@ export const verifyToken = asyncHandler(async (req, res) => {
 /**
  * Forgot password
  * POST /api/auth/forgot-password
- * Always returns a generic success message to prevent email enumeration.
+ *
+ * Rate limiting behaviour:
+ * - Handled by forgotPasswordLimiter middleware (2 requests / 2 hours
+ *   per IP + email combination).
+ * - This controller only enforces user/account checks, not global
+ *   cooldowns, so requests for other emails or from other IPs are
+ *   unaffected.
  */
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
-  const genericResponse = {
-    success: true,
-    message: 'If an account exists for that email, a password reset link has been sent.',
-  };
-
-  const user = await User.findOne({ email: email.toLowerCase() }).select(
-    '+forgotPasswordConsecutiveCount +forgotPasswordLastRequestedAt +forgotPasswordCooldownUntil'
-  );
+  const user = await User.findOne({ email: email.toLowerCase() });
   if (!user || !user.isActive) {
     return res.status(404).json({
       success: false,
@@ -218,39 +217,6 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   }
 
   const now = new Date();
-
-  // "2 consecutive" window (default 15 minutes). If requests are far apart,
-  // we reset the consecutive counter.
-  const windowMinutesRaw = process.env.FORGOT_PASSWORD_CONSECUTIVE_WINDOW_MINUTES;
-  const windowMinutes = Number.isFinite(Number(windowMinutesRaw))
-    ? Math.max(1, Number(windowMinutesRaw))
-    : 15;
-  const windowMs = windowMinutes * 60 * 1000;
-
-  if (
-    user.forgotPasswordLastRequestedAt &&
-    now.getTime() - user.forgotPasswordLastRequestedAt.getTime() > windowMs
-  ) {
-    console.log(`Resetting consecutive count for ${user.email} (outside ${windowMinutes}min window)`);
-    user.forgotPasswordConsecutiveCount = 0;
-  }
-
-  // If user is currently in cooldown, block with the exact message requested.
-  if (user.forgotPasswordCooldownUntil && user.forgotPasswordCooldownUntil > now) {
-    const remainingMs = user.forgotPasswordCooldownUntil - now;
-    const remainingMin = Math.ceil(remainingMs / 60000);
-    console.log(`🚫 User ${user.email} blocked - ${remainingMin}min remaining in cooldown`);
-    // IMPORTANT: Do NOT reveal cooldown publicly (prevents email enumeration).
-    return res.status(200).json(genericResponse);
-  }
-
-  // Cooldown expired -> reset counters so the user can try again.
-  if (user.forgotPasswordCooldownUntil && user.forgotPasswordCooldownUntil <= now) {
-    console.log(`Cooldown expired for ${user.email}, resetting counters`);
-    user.forgotPasswordCooldownUntil = undefined;
-    user.forgotPasswordConsecutiveCount = 0;
-  }
-
   const rawToken = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
   const expiresMinutes = 60;
@@ -258,11 +224,6 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
   user.passwordResetTokenHash = tokenHash;
   user.passwordResetExpires = expiresAt;
-
-  // Prepare count increment and cooldown BEFORE sending email
-  const newCount = (user.forgotPasswordConsecutiveCount || 0) + 1;
-  const shouldSetCooldown = newCount >= 2;
-  const cooldownUntil = shouldSetCooldown ? new Date(now.getTime() + 2 * 60 * 60 * 1000) : undefined;
 
   // Generate reset URL
   const frontendBaseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
@@ -284,58 +245,11 @@ export const forgotPassword = asyncHandler(async (req, res) => {
       message: 'Cannot send the mail. Please try again later.',
     });
   }
-
-  // Email sent successfully - NOW update database
-  user.forgotPasswordConsecutiveCount = newCount;
-  user.forgotPasswordLastRequestedAt = now;
-  if (shouldSetCooldown) {
-    user.forgotPasswordCooldownUntil = cooldownUntil;
-    console.log(`⏰ Cooldown set for ${user.email} - Count: ${newCount}, Expires: ${cooldownUntil.toISOString()}`);
-  } else {
-    console.log(`✅ Count incremented for ${user.email} - Count: ${newCount}`);
-  }
   await user.save();
 
-  return res.status(200).json(genericResponse);
-});
-
-/**
- * Check forgot password cooldown status
- * POST /api/auth/check-forgot-cooldown
- * Returns cooldown info without revealing if email exists
- */
-export const checkForgotCooldown = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-
-  const user = await User.findOne({ email: email.toLowerCase() }).select(
-    '+forgotPasswordCooldownUntil'
-  );
-
-  // If no user or no cooldown, allow request
-  if (!user || !user.forgotPasswordCooldownUntil) {
-    return res.status(200).json({
-      success: true,
-      data: { isBlocked: false }
-    });
-  }
-
-  const now = new Date();
-  if (user.forgotPasswordCooldownUntil > now) {
-    // User is in cooldown
-    return res.status(200).json({
-      success: true,
-      data: {
-        isBlocked: true,
-        cooldownUntil: user.forgotPasswordCooldownUntil.toISOString(),
-        remainingSeconds: Math.ceil((user.forgotPasswordCooldownUntil - now) / 1000)
-      }
-    });
-  }
-
-  // Cooldown expired
   return res.status(200).json({
     success: true,
-    data: { isBlocked: false }
+    message: 'If an account exists for that email, a password reset link has been sent.',
   });
 });
 
@@ -383,7 +297,6 @@ export default {
   login,
   changePassword,
   forgotPassword,
-  checkForgotCooldown,
   resetPassword,
   getMe,
   logout,
