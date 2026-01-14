@@ -1,4 +1,3 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   basePath: '/sc',
@@ -34,3 +33,7 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
+
+
+
