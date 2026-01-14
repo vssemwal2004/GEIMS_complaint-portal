@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import { FiLock, FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
-import toast from 'react-hot-toast';
-import api from '../services/api';
 import { Merriweather, Plus_Jakarta_Sans } from 'next/font/google';
 
 const headingFont = Merriweather({
@@ -18,7 +16,7 @@ const bodyFont = Plus_Jakarta_Sans({
 
 const ChangePassword = () => {
   const router = useRouter();
-  const { user, loading: authLoading, setUser } = useAuth();
+  const { user, loading: authLoading, setUser, changePassword: changePasswordContext } = useAuth();
   
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -83,36 +81,19 @@ const ChangePassword = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/api/auth/change-password', {
-        currentPassword,
-        newPassword,
-        confirmPassword,
-      });
+      const result = await changePasswordContext(currentPassword, newPassword, confirmPassword);
 
-      if (response.data.success) {
-        toast.success('Password changed successfully!');
-        
-        // Update user context with new token and forcePasswordChange: false
-        if (response.data.data?.token) {
-          localStorage.setItem('token', response.data.data.token);
-        }
-        
-        if (response.data.data?.user) {
-          setUser(response.data.data.user);
-        }
-
-        // Redirect to dashboard
+      if (result.success) {
+        // Redirect to dashboard after successful password change
         const redirectPath = user.role === 'ADMIN' ? '/admin' : '/student';
         setTimeout(() => {
           router.push(redirectPath);
         }, 1000);
       } else {
-        setError(response.data.message || 'Failed to change password');
+        setError(result.message || 'Failed to change password');
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Failed to change password';
-      setError(errorMsg);
-      toast.error(errorMsg);
+      setError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
