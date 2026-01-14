@@ -265,7 +265,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   const cooldownUntil = shouldSetCooldown ? new Date(now.getTime() + 2 * 60 * 60 * 1000) : undefined;
 
   // Generate reset URL
-  const frontendBaseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
+  const frontendBaseUrl ='https://geims.geu.ac.in/sc';
   const resetUrl = `${frontendBaseUrl.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
 
   // CRITICAL: Send email FIRST - if it fails, don't increment counter
