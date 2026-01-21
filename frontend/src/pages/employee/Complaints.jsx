@@ -8,7 +8,7 @@ import {
   FiX, FiStar, FiCheckCircle, FiRotateCw
 } from 'react-icons/fi';
 
-const StudentComplaints = () => {
+const EmployeeComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, pages: 1, total: 0 });
@@ -21,7 +21,7 @@ const StudentComplaints = () => {
   const fetchComplaints = useCallback(async (page = 1, status = 'all') => {
     setLoading(true);
     try {
-      const response = await api.get('/api/student/complaints', {
+      const response = await api.get('/api/employee/complaints', {
         params: { page, limit: 10, status },
       });
 
@@ -50,7 +50,7 @@ const StudentComplaints = () => {
 
   const handleRate = async (complaintId, rating) => {
     try {
-      const response = await api.post(`/api/student/complaints/${complaintId}/rate`, { rating });
+      const response = await api.post(`/api/employee/complaints/${complaintId}/rate`, { rating });
       if (response.data.success) {
         toast.success('Rating submitted successfully!');
         fetchComplaints(pagination.current, statusFilter);
@@ -62,7 +62,7 @@ const StudentComplaints = () => {
 
   const handleAcknowledge = async (complaintId) => {
     try {
-      const response = await api.post(`/api/student/complaints/${complaintId}/acknowledge`);
+      const response = await api.post(`/api/employee/complaints/${complaintId}/acknowledge`);
       if (response.data.success) {
         toast.success('Complaint acknowledged!');
         fetchComplaints(pagination.current, statusFilter);
@@ -81,7 +81,7 @@ const StudentComplaints = () => {
     if (!reopeningComplaintId) return;
 
     try {
-      const response = await api.post(`/api/student/complaints/${reopeningComplaintId}/reopen`, {
+      const response = await api.post(`/api/employee/complaints/${reopeningComplaintId}/reopen`, {
         reopenRemarks: remarks
       });
       if (response.data.success) {
@@ -130,7 +130,7 @@ const StudentComplaints = () => {
 
     const isResolved = selectedComplaint.status === 'RESOLVED';
     const hasRated = selectedComplaint.rating > 0;
-    const isAcknowledged = selectedComplaint.acknowledgedByStudent;
+    const isAcknowledged = selectedComplaint.acknowledgedByEmployee;
 
     return (
       <div className="fixed inset-0 z-50">
@@ -240,7 +240,7 @@ const StudentComplaints = () => {
                               handleAcknowledge(selectedComplaint._id);
                               setShowDetailModal(false);
                             }}
-                            className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 px-4 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -248,7 +248,7 @@ const StudentComplaints = () => {
                             Acknowledge Resolution
                           </button>
                         ) : (
-                          <div className="flex-1 px-4 py-2.5 bg-green-50 border border-green-200 text-green-700 text-sm font-medium rounded-lg text-center flex items-center justify-center gap-2">
+                          <div className="flex-1 px-4 py-2.5 bg-teal-50 border border-teal-200 text-teal-700 text-sm font-medium rounded-lg text-center flex items-center justify-center gap-2">
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
@@ -293,8 +293,8 @@ const StudentComplaints = () => {
             <p className="text-sm text-gray-600 mt-1">View and track submitted complaints</p>
           </div>
           <Link
-            href="/student/submit"
-            className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:opacity-90"
+            href="/employee/submit"
+            className="inline-flex items-center px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:opacity-90"
           >
             Submit
           </Link>
@@ -308,8 +308,8 @@ const StudentComplaints = () => {
           {
             key: 'all',
             label: 'All',
-            idle: 'bg-primary-50/40 text-primary-800 border-primary-100',
-            active: 'bg-primary-50 text-primary-800 border-primary-300',
+            idle: 'bg-teal-50/40 text-teal-800 border-teal-100',
+            active: 'bg-teal-50 text-teal-800 border-teal-300',
           },
           {
             key: 'READ',
@@ -350,7 +350,7 @@ const StudentComplaints = () => {
       <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600 mx-auto" />
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-teal-600 mx-auto" />
           </div>
         ) : complaints.length === 0 ? (
           <div className="px-4 py-8">
@@ -372,7 +372,7 @@ const StudentComplaints = () => {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-primary-600">{complaint.complaintId}</p>
+                        <p className="text-xs font-medium text-teal-600">{complaint.complaintId}</p>
                         <p className="text-sm text-gray-900 line-clamp-1 mt-0.5">{complaint.subject || complaint.content}</p>
                       </div>
                       <StatusBadge status={complaint.status} />
@@ -403,13 +403,13 @@ const StudentComplaints = () => {
                         </button>
                       )}
                       
-                      {!complaint.acknowledgedByStudent && (
+                      {!complaint.acknowledgedByEmployee && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAcknowledge(complaint._id);
                           }}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors"
                           title="Acknowledge Resolution"
                         >
                           <FiCheckCircle className="w-3.5 h-3.5" />
@@ -453,7 +453,7 @@ const StudentComplaints = () => {
                       className="hover:bg-white/60"
                     >
                       <td 
-                        className="px-4 py-3 text-primary-600 font-medium whitespace-nowrap cursor-pointer"
+                        className="px-4 py-3 text-teal-600 font-medium whitespace-nowrap cursor-pointer"
                         onClick={() => handleViewDetails(complaint)}
                       >
                         {complaint.complaintId || complaint._id.slice(-8)}
@@ -496,13 +496,13 @@ const StudentComplaints = () => {
                               </button>
                             )}
                             
-                            {!complaint.acknowledgedByStudent && (
+                            {!complaint.acknowledgedByEmployee && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleAcknowledge(complaint._id);
                                 }}
-                                className="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                                className="p-1.5 text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors"
                                 title="Acknowledge Resolution"
                               >
                                 <FiCheckCircle className="w-4 h-4" />
@@ -575,4 +575,4 @@ const StudentComplaints = () => {
   );
 };
 
-export default StudentComplaints;
+export default EmployeeComplaints;

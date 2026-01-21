@@ -78,7 +78,7 @@ const StatusPill = ({ status }) => {
   );
 };
 
-const AdminComplaints = () => {
+const SubAdminComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [selectedComplaintId, setSelectedComplaintId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -104,7 +104,7 @@ const AdminComplaints = () => {
   const fetchComplaints = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/admin/complaints');
+      const response = await api.get('/api/sub-admin/complaints');
       if (response?.data?.success) {
         const list = response.data.data?.complaints || [];
         setComplaints(list);
@@ -154,7 +154,6 @@ const AdminComplaints = () => {
   useEffect(() => {
     if (loading) return;
 
-    // Keep selection stable; fall back to first visible item.
     const stillVisible = filteredComplaints.some((c) => c?._id === selectedComplaintId);
     if (!selectedComplaintId || !stillVisible) {
       setSelectedComplaintId(filteredComplaints[0]?._id || null);
@@ -203,7 +202,7 @@ const AdminComplaints = () => {
 
     setUpdating(true);
     try {
-      const response = await api.patch(`/api/admin/complaints/${selectedComplaint._id}/status`, {
+      const response = await api.patch(`/api/sub-admin/complaints/${selectedComplaint._id}/status`, {
         status: newStatus,
         acknowledgment: newStatus === 'RESOLVED' ? acknowledgment : undefined,
       });
@@ -217,7 +216,7 @@ const AdminComplaints = () => {
       } else {
         toast.error('Failed to update status');
       }
-      } catch {
+    } catch {
       toast.error('Failed to update status');
     } finally {
       setUpdating(false);
@@ -226,7 +225,6 @@ const AdminComplaints = () => {
 
   const handleDownloadReport = async () => {
     try {
-      // Build query params based on current filters
       const params = {};
       
       if (dateFilter === 'today') {
@@ -246,7 +244,7 @@ const AdminComplaints = () => {
         params.endDate = customEndDate || new Date().toISOString().split('T')[0];
       }
 
-      const response = await api.get('/api/admin/reports', {
+      const response = await api.get('/api/sub-admin/reports', {
         params,
         responseType: 'blob'
       });
@@ -255,7 +253,7 @@ const AdminComplaints = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `complaints-report-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `department-complaints-report-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -283,7 +281,7 @@ const AdminComplaints = () => {
           className="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-gray-200"
         />
 
-        {/* Top filters (compact) */}
+        {/* Top filters */}
         <div className="px-3 pt-3 pb-2 border-b border-gray-200">
           {/* Download Report Button */}
           <div className="mb-3">
@@ -298,7 +296,7 @@ const AdminComplaints = () => {
             </button>
           </div>
           
-          {/* Status tabs row */}
+          {/* Status tabs */}
           <div className="flex items-center gap-1 border-b border-gray-100 pb-2">
             {STATUS_TABS.map((tab) => {
               const active = statusFilter === tab.key;
@@ -310,7 +308,7 @@ const AdminComplaints = () => {
                   className={
                     "min-w-0 flex-1 text-center text-xs font-medium px-2 py-1 rounded-md transition-colors " +
                     (active
-                      ? 'text-blue-700 bg-blue-50'
+                      ? 'text-indigo-700 bg-indigo-50'
                       : 'text-gray-600 hover:bg-gray-50')
                   }
                 >
@@ -320,7 +318,7 @@ const AdminComplaints = () => {
                   <span
                     className={
                       'mt-1 block h-0.5 w-full rounded-full ' +
-                      (active ? 'bg-blue-600' : 'bg-transparent')
+                      (active ? 'bg-indigo-600' : 'bg-transparent')
                     }
                   />
                 </button>
@@ -328,7 +326,7 @@ const AdminComplaints = () => {
             })}
           </div>
 
-          {/* Date filter row */}
+          {/* Date filter */}
           <div className="mt-2 flex items-center gap-1">
             {DATE_TABS.map((tab) => {
               const active = dateFilter === tab.key;
@@ -340,7 +338,7 @@ const AdminComplaints = () => {
                   className={
                     "min-w-0 flex-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors " +
                     (active
-                      ? 'border-blue-200 bg-blue-50 text-blue-700'
+                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                       : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50')
                   }
                 >
@@ -352,25 +350,25 @@ const AdminComplaints = () => {
             })}
           </div>
 
-          {/* Custom date controls (kept compact) */}
+          {/* Custom date controls */}
           {dateFilter === 'custom' && (
             <div className="mt-2 grid grid-cols-2 gap-2">
               <input
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className="h-8 w-full rounded-md border border-gray-200 px-2 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+                className="h-8 w-full rounded-md border border-gray-200 px-2 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none"
               />
               <input
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="h-8 w-full rounded-md border border-gray-200 px-2 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+                className="h-8 w-full rounded-md border border-gray-200 px-2 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none"
               />
             </div>
           )}
 
-          {/* Search row */}
+          {/* Search */}
           <div className="mt-2">
             <div className="relative">
               <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">
@@ -398,20 +396,26 @@ const AdminComplaints = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search"
-                className="h-8 w-full rounded-md border border-gray-200 bg-white pl-8 pr-2 text-xs text-gray-700 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none"
+                className="h-8 w-full rounded-md border border-gray-200 bg-white pl-8 pr-2 text-xs text-gray-700 placeholder-gray-400 focus:border-indigo-500 focus:outline-none"
               />
             </div>
-            <div className="mt-1 text-[11px] text-gray-500">
+          </div>
+        </div>
+
+        {/* Result count */}
+        <div className="flex-none">
+          <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+            <div className="text-xs text-gray-600">
               {filteredComplaints.length} result{filteredComplaints.length === 1 ? '' : 's'}
             </div>
           </div>
         </div>
 
-        {/* Complaint list (scrollable; takes remaining height) */}
+        {/* Complaint list */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full p-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-3"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-3"></div>
               <p className="text-sm text-gray-500">Loading complaints...</p>
             </div>
           ) : filteredComplaints.length === 0 ? (
@@ -436,7 +440,7 @@ const AdminComplaints = () => {
                   onClick={() => setSelectedComplaintId(c?._id)}
                   className={
                     "w-full text-left px-3 py-2 border-b border-gray-100 transition-colors " +
-                    (active ? 'bg-blue-50' : 'hover:bg-gray-50')
+                    (active ? 'bg-indigo-50' : 'hover:bg-gray-50')
                   }
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -457,9 +461,9 @@ const AdminComplaints = () => {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <StatusPill status={c?.status} />
-                      <span className="text-[11px] text-gray-400 whitespace-nowrap">
+                      <time className="text-[10px] text-gray-500 whitespace-nowrap">
                         {formatListDate(c?.createdAt)}
-                      </span>
+                      </time>
                     </div>
                   </div>
                 </button>
@@ -469,42 +473,35 @@ const AdminComplaints = () => {
         </div>
       </div>
 
-      {/* Right Details Panel */}
-      <div className="flex-1 min-w-0 bg-white border border-gray-200 border-l-0">
+      {/* Right Detail Panel */}
+      <div className="flex-1 flex flex-col bg-white border border-gray-200 overflow-hidden">
         {!selectedComplaint ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-800">Select a complaint</p>
-              <p className="mt-1 text-xs text-gray-500">Details will appear here.</p>
-            </div>
+          <div className="flex flex-col items-center justify-center h-full p-8">
+            <svg className="w-16 h-16 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="text-sm font-medium text-gray-700">No complaint selected</p>
+            <p className="text-xs text-gray-500 mt-1">Select a complaint to view details</p>
           </div>
         ) : (
-          <div className="h-full flex flex-col">
-            <div className="px-5 py-4 border-b border-gray-200">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">Complaint Details</p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Submitted {new Date(selectedComplaint.createdAt).toLocaleString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+          <div className="flex flex-col h-full">
+            <div className="flex-none px-5 py-4 border-b border-gray-200">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div>
+                  <p className="text-lg font-semibold text-gray-900">{selectedComplaint.userId?.name || 'Unknown'}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {selectedComplaint.userId?.role === 'STUDENT' 
+                      ? `Student - ${selectedComplaint.userId?.department || 'N/A'}`
+                      : `Employee - ${selectedComplaint.userId?.department || 'N/A'}`}
                   </p>
                 </div>
                 <StatusPill status={selectedComplaint.status} />
               </div>
 
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-md border border-gray-200 px-3 py-2">
-                  <p className="text-[11px] text-gray-500">Student ID</p>
-                  <p className="text-sm text-gray-900 break-words font-mono">{selectedComplaint.userId?.studentId || '—'}</p>
-                </div>
-                <div className="rounded-md border border-gray-200 px-3 py-2">
-                  <p className="text-[11px] text-gray-500">Student Name</p>
-                  <p className="text-sm text-gray-900 break-words">{selectedComplaint.userId?.name || '—'}</p>
+                  <p className="text-[11px] text-gray-500">Submitted</p>
+                  <p className="text-sm text-gray-900">{new Date(selectedComplaint.createdAt).toLocaleString()}</p>
                 </div>
                 <div className="rounded-md border border-gray-200 px-3 py-2">
                   <p className="text-[11px] text-gray-500">Email</p>
@@ -658,18 +655,18 @@ const AdminComplaints = () => {
               {(() => {
                 const isResolved = selectedComplaint.status === 'RESOLVED';
                 return (
-              <button
-                type="button"
-                onClick={() => {
-                  if (isResolved) return;
-                  setShowActionModal(true);
-                  setNewStatus(selectedComplaint.status || 'SUBMITTED');
-                }}
-                disabled={isResolved}
-                className="h-9 w-full rounded-md border border-blue-600 bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Update Status
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isResolved) return;
+                      setShowActionModal(true);
+                      setNewStatus(selectedComplaint.status || 'READ');
+                    }}
+                    disabled={isResolved}
+                    className="h-9 w-full rounded-md border border-indigo-600 bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Update Status
+                  </button>
                 );
               })()}
             </div>
@@ -677,7 +674,7 @@ const AdminComplaints = () => {
         )}
       </div>
 
-      {/* Status Update Modal (light overlay) */}
+      {/* Status Update Modal */}
       {showActionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 px-4">
           <div className="w-full max-w-lg rounded-lg border border-gray-200 bg-white">
@@ -702,9 +699,8 @@ const AdminComplaints = () => {
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
-                  className="h-9 w-full rounded-md border border-gray-200 px-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+                  className="h-9 w-full rounded-md border border-gray-200 px-2 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none"
                 >
-                  <option value="SUBMITTED">Submitted</option>
                   <option value="READ">Read</option>
                   <option value="UNDER_REVIEW">Under Review</option>
                   <option value="RESOLVED">Resolved</option>
@@ -720,7 +716,7 @@ const AdminComplaints = () => {
                     value={acknowledgment}
                     onChange={(e) => setAcknowledgment(e.target.value)}
                     rows={4}
-                    className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-indigo-500 focus:outline-none"
                     placeholder="Write a short response (required)…"
                   />
                   {!acknowledgment.trim() && (
@@ -742,7 +738,7 @@ const AdminComplaints = () => {
                 type="button"
                 onClick={handleUpdateStatus}
                 disabled={updating || (newStatus === 'RESOLVED' && !acknowledgment.trim())}
-                className="h-9 flex-1 rounded-md border border-blue-600 bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 flex-1 rounded-md border border-indigo-600 bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {updating ? 'Updating…' : 'Update'}
               </button>
@@ -754,4 +750,4 @@ const AdminComplaints = () => {
   );
 };
 
-export default AdminComplaints;
+export default SubAdminComplaints;

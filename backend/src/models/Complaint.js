@@ -107,6 +107,46 @@ const complaintSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Rating system (1-5 stars)
+    rating: {
+      type: Number,
+      min: [1, 'Rating must be at least 1'],
+      max: [5, 'Rating cannot exceed 5'],
+      default: null,
+    },
+    // Student/Employee acknowledgment of resolution
+    acknowledgedByStudent: {
+      type: Boolean,
+      default: false,
+    },
+    acknowledgedAt: {
+      type: Date,
+      default: null,
+    },
+    // Reopen history
+    reopenHistory: [
+      {
+        reopenedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        reopenedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        reopenRemarks: {
+          type: String,
+          required: [true, 'Reopen remarks are required'],
+          trim: true,
+          maxlength: [2000, 'Reopen remarks cannot exceed 2000 characters'],
+        },
+        previousStatus: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
   },
   {
     timestamps: true, // Adds createdAt and updatedAt

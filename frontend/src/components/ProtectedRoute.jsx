@@ -34,7 +34,14 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
     // Check role permissions
     if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-      router.replace(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard');
+      // Redirect to appropriate dashboard based on role
+      const dashboardMap = {
+        'ADMIN': '/admin/dashboard',
+        'SUB_ADMIN': '/sub-admin/dashboard',
+        'EMPLOYEE': '/employee/dashboard',
+        'STUDENT': '/student/dashboard'
+      };
+      router.replace(dashboardMap[user.role] || '/Login');
     }
   }, [isClient, router, user, loading, requirePasswordChange, allowedRoles]);
 

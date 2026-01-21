@@ -17,7 +17,12 @@ import adminController from '../controllers/adminController.js';
 import { authenticate, requireAdmin, checkPasswordChange } from '../middlewares/auth.js';
 import { apiLimiter } from '../middlewares/rateLimiter.js';
 import { validateBody, validateObjectId } from '../middlewares/validate.js';
-import { createStudentSchema, updateComplaintStatusSchema } from '../validators/schemas.js';
+import { 
+  createStudentSchema, 
+  createSubAdminSchema, 
+  createEmployeeSchema, 
+  updateComplaintStatusSchema 
+} from '../validators/schemas.js';
 
 const router = express.Router();
 
@@ -92,6 +97,133 @@ router.post(
 );
 
 /**
+ * @route   PUT /api/admin/students/:id
+ * @desc    Update student details
+ * @access  Admin only
+ */
+router.put(
+  '/students/:id',
+  validateObjectId('id'),
+  validateBody(createStudentSchema),
+  adminController.updateStudent
+);
+
+/**
+ * @route   DELETE /api/admin/students/:id
+ * @desc    Delete a student
+ * @access  Admin only
+ */
+router.delete(
+  '/students/:id',
+  validateObjectId('id'),
+  adminController.deleteStudent
+);
+
+/**
+ * @route   GET /api/admin/sub-admins
+ * @desc    Get all sub-admins
+ * @access  Admin only
+ */
+router.get('/sub-admins', adminController.getAllSubAdmins);
+
+/**
+ * @route   POST /api/admin/sub-admins
+ * @desc    Create a single sub-admin
+ * @access  Admin only
+ */
+router.post(
+  '/sub-admins',
+  validateBody(createSubAdminSchema),
+  adminController.createSubAdmin
+);
+
+/**
+ * @route   POST /api/admin/sub-admins/csv
+ * @desc    Create multiple sub-admins from CSV
+ * @access  Admin only
+ */
+router.post(
+  '/sub-admins/csv',
+  csvUpload.single('file'),
+  adminController.createSubAdminsFromCSV
+);
+
+/**
+ * @route   PUT /api/admin/sub-admins/:id
+ * @desc    Update sub-admin details
+ * @access  Admin only
+ */
+router.put(
+  '/sub-admins/:id',
+  validateObjectId('id'),
+  validateBody(createSubAdminSchema),
+  adminController.updateSubAdmin
+);
+
+/**
+ * @route   DELETE /api/admin/sub-admins/:id
+ * @desc    Delete a sub-admin
+ * @access  Admin only
+ */
+router.delete(
+  '/sub-admins/:id',
+  validateObjectId('id'),
+  adminController.deleteSubAdmin
+);
+
+/**
+ * @route   GET /api/admin/employees
+ * @desc    Get all employees
+ * @access  Admin only
+ */
+router.get('/employees', adminController.getAllEmployees);
+
+/**
+ * @route   POST /api/admin/employees
+ * @desc    Create a single employee
+ * @access  Admin only
+ */
+router.post(
+  '/employees',
+  validateBody(createEmployeeSchema),
+  adminController.createEmployee
+);
+
+/**
+ * @route   POST /api/admin/employees/csv
+ * @desc    Create multiple employees from CSV
+ * @access  Admin only
+ */
+router.post(
+  '/employees/csv',
+  csvUpload.single('file'),
+  adminController.createEmployeesFromCSV
+);
+
+/**
+ * @route   PUT /api/admin/employees/:id
+ * @desc    Update employee details
+ * @access  Admin only
+ */
+router.put(
+  '/employees/:id',
+  validateObjectId('id'),
+  validateBody(createEmployeeSchema),
+  adminController.updateEmployee
+);
+
+/**
+ * @route   DELETE /api/admin/employees/:id
+ * @desc    Delete an employee
+ * @access  Admin only
+ */
+router.delete(
+  '/employees/:id',
+  validateObjectId('id'),
+  adminController.deleteEmployee
+);
+
+/**
  * @route   GET /api/admin/complaints
  * @desc    Get all complaints
  * @access  Admin only
@@ -109,5 +241,12 @@ router.patch(
   validateBody(updateComplaintStatusSchema),
   adminController.updateComplaintStatus
 );
+
+/**
+ * @route   GET /api/admin/reports
+ * @desc    Generate and download complaint report
+ * @access  Admin only
+ */
+router.get('/reports', adminController.generateReport);
 
 export default router;

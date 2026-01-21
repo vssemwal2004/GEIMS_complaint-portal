@@ -16,7 +16,12 @@ import studentController from '../controllers/studentController.js';
 import { authenticate, requireStudent, checkPasswordChange } from '../middlewares/auth.js';
 import { apiLimiter, complaintLimiter, complaintCooldownLimiter } from '../middlewares/rateLimiter.js';
 import { validateBody, validateObjectId } from '../middlewares/validate.js';
-import { createComplaintSchema } from '../validators/schemas.js';
+import { 
+  createComplaintSchema, 
+  reopenComplaintSchema, 
+  rateComplaintSchema, 
+  acknowledgeComplaintSchema 
+} from '../validators/schemas.js';
 
 const router = express.Router();
 
@@ -70,6 +75,42 @@ router.post(
   complaintLimiter,
   validateBody(createComplaintSchema),
   studentController.submitComplaint
+);
+
+/**
+ * @route   POST /api/student/complaints/:id/reopen
+ * @desc    Reopen a resolved complaint
+ * @access  Student only
+ */
+router.post(
+  '/complaints/:id/reopen',
+  validateObjectId('id'),
+  validateBody(reopenComplaintSchema),
+  studentController.reopenComplaint
+);
+
+/**
+ * @route   POST /api/student/complaints/:id/rate
+ * @desc    Rate a resolved complaint
+ * @access  Student only
+ */
+router.post(
+  '/complaints/:id/rate',
+  validateObjectId('id'),
+  validateBody(rateComplaintSchema),
+  studentController.rateComplaint
+);
+
+/**
+ * @route   POST /api/student/complaints/:id/acknowledge
+ * @desc    Acknowledge a resolved complaint
+ * @access  Student only
+ */
+router.post(
+  '/complaints/:id/acknowledge',
+  validateObjectId('id'),
+  validateBody(acknowledgeComplaintSchema),
+  studentController.acknowledgeComplaint
 );
 
 export default router;

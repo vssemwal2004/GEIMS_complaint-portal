@@ -129,10 +129,28 @@ export const requireRole = (...roles) => {
 export const requireAdmin = requireRole(USER_ROLES.ADMIN);
 
 /**
+ * Require admin or sub-admin role
+ * Convenience middleware for routes accessible to both admin and sub-admin
+ */
+export const requireAdminOrSubAdmin = requireRole(USER_ROLES.ADMIN, USER_ROLES.SUB_ADMIN);
+
+/**
  * Require student role
  * Convenience middleware for student-only routes
  */
 export const requireStudent = requireRole(USER_ROLES.STUDENT);
+
+/**
+ * Require employee role
+ * Convenience middleware for employee-only routes
+ */
+export const requireEmployee = requireRole(USER_ROLES.EMPLOYEE);
+
+/**
+ * Require student or employee role
+ * Convenience middleware for routes accessible to both students and employees
+ */
+export const requireStudentOrEmployee = requireRole(USER_ROLES.STUDENT, USER_ROLES.EMPLOYEE);
 
 /**
  * Check if password change is required
@@ -178,7 +196,10 @@ export default {
   authenticate,
   requireRole,
   requireAdmin,
+  requireAdminOrSubAdmin,
   requireStudent,
+  requireEmployee,
+  requireStudentOrEmployee,
   checkPasswordChange,
   generateToken,
 };

@@ -178,7 +178,8 @@ export const getComplaint = asyncHandler(async (req, res) => {
   const userId = req.userId;
 
   const complaint = await Complaint.findOne({ _id: id, userId })
-    .populate('resolvedBy', 'name');
+    .populate('resolvedBy', 'name')
+    .populate('reopenHistory.reopenedBy', 'name email');
 
   if (!complaint) {
     throw new NotFoundError('Complaint not found');
@@ -248,10 +249,132 @@ export const getProfile = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Reopen a resolved complaint
+ * POST /api/student/complaints/:id/reopen
+ */
+export const reopenComplaint = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { reopenRemarks } = req.body;
+  const userId = req.userId;
+
+  const complaint = await Complaint.findOne({ _id: id, userId });
+
+  if (!complaint) {
+    throw new NotFoundError('Complaint not found');
+  }
+
+  // Can only reopen resolved complaints
+  if (complaint.status !== COMPLAINT_STATUS.RESOLVED) {
+    throw new ValidationError('Only resolved complaints can be reopened');
+  }
+
+  // Add to reopen history
+  complaint.reopenHistory.push({
+    reopenedBy: userId,
+    reopenedAt: new Date(),
+    reopenRemarks,
+    previousStatus: complaint.status,
+  });
+
+  // Reset status to READ
+  complaint.status = COMPLAINT_STATUS.READ;
+  complaint.resolvedAt = null;
+  complaint.resolvedBy = null;
+  complaint.acknowledgedByStudent = false;
+  complaint.acknowledgedAt = null;
+
+  await complaint.save();
+
+  // Populate for response
+  await complaint.populate('userId', 'name email college studentId');
+  await complaint.populate('resolvedBy', 'name email');
+
+  res.status(200).json({
+    success: true,
+    message: 'Complaint reopened successfully',
+    data: {
+      complaint,
+    },
+  });
+});
+
+/**
+ * Rate a resolved complaint
+ * POST /api/student/complaints/:id/rate
+ */
+export const rateComplaint = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { rating } = req.body;
+  const userId = req.userId;
+
+  const complaint = await Complaint.findOne({ _id: id, userId });
+
+  if (!complaint) {
+    throw new NotFoundError('Complaint not found');
+  }
+
+  // Can only rate resolved complaints
+  if (complaint.status !== COMPLAINT_STATUS.RESOLVED) {
+    throw new ValidationError('Only resolved complaints can be rated');
+  }
+
+  // Update rating
+  complaint.rating = rating;
+  await complaint.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Rating submitted successfully',
+    data: {
+      complaint,
+    },
+  });
+});
+
+/**
+ * Acknowledge a resolved complaint
+ * POST /api/student/complaints/:id/acknowledge
+ */
+export const acknowledgeComplaint = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { acknowledged } = req.body;
+  const userId = req.userId;
+
+  const complaint = await Complaint.findOne({ _id: id, userId });
+
+  if (!complaint) {
+    throw new NotFoundError('Complaint not found');
+  }
+
+  // Can only acknowledge resolved complaints
+  if (complaint.status !== COMPLAINT_STATUS.RESOLVED) {
+    throw new ValidationError('Only resolved complaints can be acknowledged');
+  }
+
+  // Update acknowledgment
+  complaint.acknowledgedByStudent = acknowledged;
+  if (acknowledged) {
+    complaint.acknowledgedAt = new Date();
+  }
+  await complaint.save();
+
+  res.status(200).json({
+    success: true,
+    message: acknowledged ? 'Complaint acknowledged successfully' : 'Acknowledgment removed',
+    data: {
+      complaint,
+    },
+  });
+});
+
 export default {
   submitComplaint,
   getMyComplaints,
   getComplaint,
   getMyStats,
   getProfile,
+  reopenComplaint,
+  rateComplaint,
+  acknowledgeComplaint,
 };

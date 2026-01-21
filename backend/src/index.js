@@ -33,7 +33,9 @@ import connectDB from './config/database.js';
 // Import routes
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import subAdminRoutes from './routes/subAdminRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
+import employeeRoutes from './routes/employeeRoutes.js';
 
 // Import middlewares
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
@@ -189,8 +191,14 @@ app.use('/api/auth', authRoutes);
 // Admin routes (student management, complaint review)
 app.use('/api/admin', adminRoutes);
 
+// Sub-Admin routes (department-specific complaint management)
+app.use('/api/sub-admin', subAdminRoutes);
+
 // Student routes (complaint submission, viewing)
 app.use('/api/student', studentRoutes);
+
+// Employee routes (complaint submission, viewing)
+app.use('/api/employee', employeeRoutes);
 
 // ===========================================
 // ERROR HANDLING

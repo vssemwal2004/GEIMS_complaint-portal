@@ -106,6 +106,11 @@ export const createStudentSchema = z.object({
     .min(2, 'College name must be at least 2 characters')
     .max(200, 'College name cannot exceed 200 characters')
     .trim(),
+  department: z
+    .string()
+    .min(2, 'Department name must be at least 2 characters')
+    .max(200, 'Department name cannot exceed 200 characters')
+    .trim(),
 }).strict();
 
 /**
@@ -123,6 +128,97 @@ export const csvStudentSchema = z.object({
     .max(100, 'Name cannot exceed 100 characters')
     .trim(),
   email: emailSchema,
+  college: z
+    .string()
+    .min(2, 'College name must be at least 2 characters')
+    .max(200, 'College name cannot exceed 200 characters')
+    .trim(),
+  department: z
+    .string()
+    .min(2, 'Department name must be at least 2 characters')
+    .max(200, 'Department name cannot exceed 200 characters')
+    .trim(),
+});
+
+/**
+ * Single sub-admin creation schema
+ */
+export const createSubAdminSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name cannot exceed 100 characters')
+    .trim()
+    .refine(
+      (val) => /^[a-zA-Z\s'-]+$/.test(val),
+      'Name can only contain letters, spaces, hyphens, and apostrophes'
+    ),
+  email: emailSchema,
+  department: z
+    .string()
+    .min(2, 'Department name must be at least 2 characters')
+    .max(200, 'Department name cannot exceed 200 characters')
+    .trim(),
+}).strict();
+
+/**
+ * CSV sub-admin row validation schema
+ */
+export const csvSubAdminSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name cannot exceed 100 characters')
+    .trim(),
+  email: emailSchema,
+  department: z
+    .string()
+    .min(2, 'Department name must be at least 2 characters')
+    .max(200, 'Department name cannot exceed 200 characters')
+    .trim(),
+});
+
+/**
+ * Single employee creation schema
+ */
+export const createEmployeeSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name cannot exceed 100 characters')
+    .trim()
+    .refine(
+      (val) => /^[a-zA-Z\s'-]+$/.test(val),
+      'Name can only contain letters, spaces, hyphens, and apostrophes'
+    ),
+  email: emailSchema,
+  department: z
+    .string()
+    .min(2, 'Department name must be at least 2 characters')
+    .max(200, 'Department name cannot exceed 200 characters')
+    .trim(),
+  college: z
+    .string()
+    .min(2, 'College name must be at least 2 characters')
+    .max(200, 'College name cannot exceed 200 characters')
+    .trim(),
+}).strict();
+
+/**
+ * CSV employee row validation schema
+ */
+export const csvEmployeeSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name cannot exceed 100 characters')
+    .trim(),
+  email: emailSchema,
+  department: z
+    .string()
+    .min(2, 'Department name must be at least 2 characters')
+    .max(200, 'Department name cannot exceed 200 characters')
+    .trim(),
   college: z
     .string()
     .min(2, 'College name must be at least 2 characters')
@@ -255,6 +351,58 @@ export const updateComplaintStatusSchema = z.object({
 );
 
 /**
+ * Complaint reopen schema
+ */
+export const reopenComplaintSchema = z.object({
+  reopenRemarks: z
+    .string()
+    .min(10, 'Reopen remarks must be at least 10 characters')
+    .max(2000, 'Reopen remarks cannot exceed 2000 characters')
+    .trim(),
+}).strict();
+
+/**
+ * Complaint rating schema
+ */
+export const rateComplaintSchema = z.object({
+  rating: z
+    .number()
+    .min(1, 'Rating must be at least 1')
+    .max(5, 'Rating cannot exceed 5')
+    .int('Rating must be a whole number'),
+}).strict();
+
+/**
+ * Complaint acknowledgment schema
+ */
+export const acknowledgeComplaintSchema = z.object({
+  acknowledged: z.boolean(),
+}).strict();
+
+/**
+ * Report generation schema with date range
+ */
+export const reportGenerationSchema = z.object({
+  startDate: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || !isNaN(Date.parse(val)),
+      'Invalid start date format'
+    ),
+  endDate: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || !isNaN(Date.parse(val)),
+      'Invalid end date format'
+    ),
+  predefinedRange: z
+    .enum(['last7days', 'last30days', 'custom'])
+    .optional(),
+}).strict();
+
+/**
  * MongoDB ObjectId validation schema
  */
 export const objectIdSchema = z
@@ -312,8 +460,16 @@ export default {
   resetPasswordSchema,
   createStudentSchema,
   csvStudentSchema,
+  createSubAdminSchema,
+  csvSubAdminSchema,
+  createEmployeeSchema,
+  csvEmployeeSchema,
   createComplaintSchema,
   updateComplaintStatusSchema,
+  reopenComplaintSchema,
+  rateComplaintSchema,
+  acknowledgeComplaintSchema,
+  reportGenerationSchema,
   objectIdSchema,
   paginationSchema,
   validateInput,

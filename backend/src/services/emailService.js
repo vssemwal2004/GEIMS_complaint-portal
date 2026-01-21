@@ -98,29 +98,32 @@ const buildLogoBlock = ({ src }) => {
  */
 const emailStyles = `
   <style>
-    /* Keep styles simple for broad email-client support */
-    body { margin: 0; padding: 0; background: #f6f7f9; }
+    body { margin: 0; padding: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
     table { border-collapse: collapse; }
     img { border: 0; outline: none; text-decoration: none; display: block; }
-    a { color: #16a34a; }
-    .container { width: 100%; background: #f6f7f9; padding: 24px 0; }
-    .card { width: 100%; max-width: 600px; background: #ffffff; border: 1px solid #e7e9ee; border-radius: 14px; overflow: hidden; }
-    .header { padding: 20px 24px; background: #ffffff; border-bottom: 1px solid #eef0f4; }
-    .brand { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; color: #0f172a; font-weight: 700; }
-    .content { padding: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #0f172a; line-height: 1.6; }
-    .muted { color: #64748b; font-size: 13px; }
-    .title { font-size: 20px; font-weight: 800; margin: 0 0 6px 0; color: #0f172a; }
-    .subtitle { margin: 0 0 18px 0; color: #475569; font-size: 14px; }
-    .divider { height: 1px; background: #eef0f4; margin: 18px 0; }
-    .button { display: inline-block; padding: 12px 18px; background: #16a34a; color: #ffffff !important; text-decoration: none; border-radius: 10px; font-weight: 800; }
-    .info { background: #f0fdf4; border: 1px solid #dcfce7; border-left: 4px solid #16a34a; padding: 12px 14px; border-radius: 10px; }
-    .warning { color: #b91c1c; font-weight: 700; }
-    .success { color: #16a34a; font-weight: 700; }
-    .credentials { background: #f8fafc; border: 1px solid #eef0f4; padding: 12px 14px; border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 13px; }
-    /* Backwards-compatible class for older templates */
-    .info-box { background: #f0fdf4; border: 1px solid #dcfce7; border-left: 4px solid #16a34a; padding: 12px 14px; border-radius: 10px; }
-    .footer { padding: 16px 24px 22px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #64748b; text-align: center; }
+    a { color: #16a34a; text-decoration: none; }
+    .container { width: 100%; background: #f5f5f7; padding: 32px 16px; }
+    .card { width: 100%; max-width: 600px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .header { padding: 24px 32px; background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); border-bottom: none; }
+    .brand { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; color: #ffffff; font-weight: 600; letter-spacing: 0.3px; }
+    .content { padding: 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; line-height: 1.6; font-size: 15px; }
+    .greeting { font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 16px 0; }
+    .muted { color: #6b7280; font-size: 14px; line-height: 1.5; }
+    .title { font-size: 22px; font-weight: 700; margin: 0 0 8px 0; color: #111827; }
+    .subtitle { margin: 0 0 20px 0; color: #6b7280; font-size: 15px; line-height: 1.5; }
+    .divider { height: 1px; background: #e5e7eb; margin: 24px 0; }
+    .button { display: inline-block; padding: 14px 24px; background: #16a34a; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; }
+    .info { background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 3px solid #16a34a; padding: 16px 20px; border-radius: 8px; margin: 16px 0; }
+    .warning { color: #dc2626; font-weight: 600; }
+    .success { color: #16a34a; font-weight: 600; }
+    .credentials { background: #f9fafb; border: 1px solid #e5e7eb; padding: 16px 20px; border-radius: 8px; font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace; font-size: 14px; color: #374151; }
+    .info-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 3px solid #16a34a; padding: 16px 20px; border-radius: 8px; margin: 16px 0; }
+    .footer { padding: 24px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #9ca3af; text-align: center; background: #fafafa; }
     .preheader { display: none !important; visibility: hidden; opacity: 0; color: transparent; height: 0; width: 0; overflow: hidden; mso-hide: all; }
+    p { margin: 0 0 16px 0; }
+    ul, ol { margin: 0 0 16px 0; padding-left: 24px; }
+    li { margin-bottom: 8px; }
+    h3 { font-size: 16px; font-weight: 600; color: #374151; margin: 20px 0 12px 0; }
   </style>
 `;
 
@@ -158,7 +161,7 @@ const emailWrapper = (title, body, { preheader = '', logoSrc = '' } = {}) => {
                     </td>
                     <td align="left" valign="middle" style="padding-left: 12px;">
                       <div class="brand">GEIMS Complaint Portal</div>
-                      <div class="muted">Graphic Era Institute of Medical Sciences</div>
+                      <div style="color: #ffffff; font-size: 13px; font-weight: 500;">Graphic Era Institute of Medical Sciences</div>
                     </td>
                   </tr>
                 </table>
@@ -247,32 +250,32 @@ export const sendAccountCreatedEmail = async ({ email, name, temporaryPassword, 
   const subject = 'Welcome to GEIMS Complaint Portal - Your Account Details';
   
   const body = `
-    <h2>Welcome, ${escapeHtml(name)}! 👋</h2>
+    <p class="greeting">Dear Student, ${escapeHtml(name)}</p>
     
-    <p>Your account has been created on the <strong>GEIMS Complaint Portal</strong>.</p>
+    <p>Your account has been successfully created on the <strong>GEIMS Complaint Portal</strong>. We're pleased to welcome you to our platform.</p>
     
     <p>College: <strong>${escapeHtml(college)}</strong></p>
     
     <div class="info-box">
-      <h3>📧 Your Login Credentials</h3>
+      <h3 style="margin: 0 0 12px 0; color: #166534;">Your Login Credentials</h3>
       <div class="credentials">
-        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-        <p><strong>Temporary Password:</strong> ${escapeHtml(temporaryPassword)}</p>
+        <div style="margin-bottom: 10px;"><strong>Email:</strong> ${escapeHtml(email)}</div>
+        <div><strong>Temporary Password:</strong> ${escapeHtml(temporaryPassword)}</div>
       </div>
     </div>
     
-    <p class="warning">⚠️ Important: You will be required to change your password on first login.</p>
+    <p class="warning" style="margin: 20px 0;">⚠️ Important: You must change your password upon first login for security purposes.</p>
     
-    <h3>📝 How to Get Started:</h3>
-    <ol>
+    <h3>Getting Started:</h3>
+    <ol style="color: #374151;">
       <li>Visit the GEIMS Complaint Portal login page</li>
       <li>Enter your email and temporary password</li>
-      <li>Change your password to something secure</li>
+      <li>Create a new secure password</li>
       <li>Start submitting complaints or feedback</li>
     </ol>
     
-    <h3>🔒 Password Requirements:</h3>
-    <ul>
+    <h3>Password Requirements:</h3>
+    <ul style="color: #374151;">
       <li>Minimum 8 characters</li>
       <li>At least one uppercase letter</li>
       <li>At least one lowercase letter</li>
@@ -280,7 +283,9 @@ export const sendAccountCreatedEmail = async ({ email, name, temporaryPassword, 
       <li>At least one special character</li>
     </ul>
     
-    <p>If you have any questions, please contact your administrator.</p>
+    <p style="margin: 24px 0 0 0;">If you have any questions, please contact your administrator.</p>
+    
+    <p style="margin: 16px 0 0 0; color: #6b7280;">Best regards,<br/><strong>GEIMS Administration Team</strong></p>
   `;
   
   try {
@@ -655,10 +660,125 @@ export const sendStatusUpdateEmail = async ({ email, name, complaintId, subject:
   }
 };
 
+/**
+ * Send account updated email
+ * @param {Object} params
+ * @param {string} params.email - User email
+ * @param {string} params.name - User name
+ * @param {string} params.role - User role (student, employee, sub-admin)
+ * @param {Object} params.changes - Changes made
+ * @returns {Promise<Object>}
+ */
+export const sendAccountUpdatedEmail = async ({ email, name, role, changes }) => {
+  const roleTitle = role === 'student' ? 'Student' : role === 'employee' ? 'Employee' : 'Sub-Admin';
+  const roleGreeting = `Dear ${roleTitle}, ${escapeHtml(name)}`;
+  const subject = 'Account Information Updated - GEIMS Complaint Portal';
+  
+  const changesList = Object.entries(changes)
+    .map(([key, value]) => `<li><strong>${key}:</strong> ${escapeHtml(String(value))}</li>`)
+    .join('');
+  
+  const body = `
+    <p class="greeting">${roleGreeting}</p>
+    
+    <p>Your account information has been updated by the administrator on the <strong>GEIMS Complaint Portal</strong>.</p>
+    
+    <div class="info-box">
+      <h3 style="margin: 0 0 12px 0; color: #166534;">Updated Information</h3>
+      <ul style="margin: 0; color: #374151;">
+        ${changesList}
+      </ul>
+    </div>
+    
+    <div class="info" style="background: #eff6ff; border-color: #bfdbfe; border-left-color: #3b82f6;">
+      <p style="margin: 0; color: #1e40af;"><strong>Update Date:</strong> ${escapeHtml(new Date().toLocaleString())}</p>
+    </div>
+    
+    <p class="warning" style="margin: 20px 0;">If you did not request this change or believe this is an error, please contact the administrator immediately.</p>
+    
+    <p style="margin: 24px 0 0 0;">You can continue using the portal with your updated information.</p>
+    
+    <p style="margin: 16px 0 0 0; color: #6b7280;">Best regards,<br/><strong>GEIMS Administration Team</strong></p>
+  `;
+  
+  try {
+    const info = await sendBrandedMail({
+      to: email,
+      subject,
+      body,
+      preheader: 'Your account information has been updated by the administrator.',
+    });
+    
+    console.log(`✅ Account updated email sent to ${email}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`❌ Failed to send account updated email to ${email}:`, error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send account deletion notification email
+ * @param {Object} params
+ * @param {string} params.email - User email
+ * @param {string} params.name - User name
+ * @param {string} params.role - User role (student, employee, sub-admin)
+ * @returns {Promise<Object>}
+ */
+export const sendAccountDeletedEmail = async ({ email, name, role }) => {
+  const roleTitle = role === 'student' ? 'Student' : role === 'employee' ? 'Employee' : 'Sub-Admin';
+  const roleGreeting = `Dear ${roleTitle}, ${escapeHtml(name)}`;
+  const subject = 'Account Deactivated - GEIMS Complaint Portal';
+  
+  const body = `
+    <p class="greeting">${roleGreeting}</p>
+    
+    <p>We are writing to inform you that your account on the <strong>GEIMS Complaint Portal</strong> has been deactivated by the administrator.</p>
+    
+    <div class="info" style="background: #fef2f2; border-color: #fecaca; border-left-color: #dc2626;">
+      <h3 style="margin: 0 0 12px 0; color: #991b1b;">Account Deactivation Details</h3>
+      <p style="margin: 0; color: #7f1d1d;"><strong>Account Type:</strong> ${escapeHtml(roleTitle)}</p>
+      <p style="margin: 8px 0 0 0; color: #7f1d1d;"><strong>Deactivation Date:</strong> ${escapeHtml(new Date().toLocaleString())}</p>
+    </div>
+    
+    <p style="margin: 20px 0;">You will no longer be able to access the complaint portal with this account.</p>
+    
+    <p><strong>What this means:</strong></p>
+    <ul style="color: #374151;">
+      <li>Your login credentials will no longer work</li>
+      <li>You cannot submit new complaints</li>
+      <li>You cannot access existing complaints</li>
+    </ul>
+    
+    <p class="warning" style="margin: 20px 0;">If you believe this is an error, please contact the administrator immediately.</p>
+    
+    <p style="margin: 24px 0 0 0;">Thank you for using the GEIMS Complaint Portal.</p>
+    
+    <p style="margin: 16px 0 0 0; color: #6b7280;">Best regards,<br/><strong>GEIMS Administration Team</strong></p>
+  `;
+  
+  try {
+    const info = await sendBrandedMail({
+      to: email,
+      subject,
+      body,
+      preheader: 'Your GEIMS Complaint Portal account has been deactivated.',
+    });
+    
+    console.log(`✅ Account deleted email sent to ${email}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`❌ Failed to send account deleted email to ${email}:`, error.message);
+    return { success: false, error: error.message };
+  }
+};
+
 export default {
   sendAccountCreatedEmail,
   sendPasswordChangedEmail,
   sendComplaintSubmittedEmail,
   sendComplaintResolvedEmail,
   sendStatusUpdateEmail,
+  sendAccountUpdatedEmail,
+  sendAccountDeletedEmail,
 };

@@ -3,13 +3,11 @@ import { useRouter } from 'next/router';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const AddStudent = () => {
+const AddSubAdmin = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    studentId: '',
     name: '',
     email: '',
-    college: '',
     department: ''
   });
   const [csvFile, setCSVFile] = useState(null);
@@ -25,36 +23,17 @@ const AddStudent = () => {
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    
-    if (file) {
-      // Validate file type
-      if (!file.name.toLowerCase().endsWith('.csv')) {
-        toast.error('Only CSV files are allowed');
-        e.target.value = '';
-        return;
-      }
-      
-      // Validate file size (5MB)
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        toast.error('File size must be less than 5MB');
-        e.target.value = '';
-        return;
-      }
-      
-      setCSVFile(file);
-      setUploadResult(null);
-    }
+    setCSVFile(e.target.files[0]);
+    setUploadResult(null);
   };
 
   const downloadTemplate = () => {
-    const csvContent = 'studentId,name,email,college,department\nSTU2024001,John Doe,john@example.com,Sample College,Computer Science\nSTU2024002,Jane Smith,jane@example.com,Another College,Information Technology';
+    const csvContent = 'name,email,department\nJohn Doe,john@example.com,Computer Science\nJane Smith,jane@example.com,Information Technology';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'student-template.csv';
+    a.download = 'sub-admin-template.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -65,21 +44,21 @@ const AddStudent = () => {
   const handleSingleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.studentId || !formData.name || !formData.email || !formData.college || !formData.department) {
+    if (!formData.name || !formData.email || !formData.department) {
       toast.error('Please fill in all fields');
       return;
     }
 
     try {
       setSubmitting(true);
-      const response = await api.post('/api/admin/students', formData);
+      const response = await api.post('/api/admin/sub-admins', formData);
       
       if (response.data.success) {
-        toast.success('Student created successfully!');
-        setFormData({ studentId: '', name: '', email: '', college: '', department: '' });
+        toast.success('Sub-admin created successfully!');
+        setFormData({ name: '', email: '', department: '' });
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to create student');
+      toast.error(error.response?.data?.message || 'Failed to create sub-admin');
     } finally {
       setSubmitting(false);
     }
@@ -95,36 +74,20 @@ const AddStudent = () => {
 
     try {
       setSubmitting(true);
-      setUploadResult(null);
-      
       const formDataObj = new FormData();
       formDataObj.append('file', csvFile);
 
-      const response = await api.post('/api/admin/students/csv', formDataObj, {
+      const response = await api.post('/api/admin/sub-admins/csv', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       if (response.data.success) {
         setUploadResult(response.data.data);
-        const { created, failed } = response.data.data;
-        
-        if (created.length > 0 && failed.length === 0) {
-          toast.success(`Successfully created ${created.length} student(s)!`);
-        } else if (created.length > 0 && failed.length > 0) {
-          toast.success(`Created ${created.length} student(s). ${failed.length} failed - check details below`);
-        } else if (failed.length > 0) {
-          toast.error(`All ${failed.length} records failed. Check details below`);
-        }
-        
-        // Clear file input
+        toast.success(response.data.message);
         setCSVFile(null);
-        const fileInput = document.querySelector('input[type="file"]');
-        if (fileInput) fileInput.value = '';
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to upload CSV';
-      toast.error(errorMsg, { duration: 5000 });
-      console.error('CSV Upload Error:', error.response?.data);
+      toast.error(error.response?.data?.message || 'Failed to upload CSV');
     } finally {
       setSubmitting(false);
     }
@@ -134,8 +97,8 @@ const AddStudent = () => {
     <div className="max-w-4xl mx-auto space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Add Student</h1>
-        <p className="text-sm text-gray-600 mt-0.5">Create new student accounts individually or in bulk</p>
+        <h1 className="text-2xl font-bold text-gray-900">Add Sub-Admin</h1>
+        <p className="text-sm text-gray-600 mt-0.5">Create new sub-admin accounts individually or in bulk</p>
       </div>
 
       {/* Mode Toggle */}
@@ -146,17 +109,17 @@ const AddStudent = () => {
               onClick={() => { setUploadMode('single'); setUploadResult(null); }}
               className={`flex-1 py-3 px-4 text-center text-sm font-medium border-b-2 transition-colors ${
                 uploadMode === 'single'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Single Student
+              Single Sub-Admin
             </button>
             <button
               onClick={() => { setUploadMode('csv'); setUploadResult(null); }}
               className={`flex-1 py-3 px-4 text-center text-sm font-medium border-b-2 transition-colors ${
                 uploadMode === 'csv'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -170,21 +133,6 @@ const AddStudent = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Student ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="studentId"
-                  value={formData.studentId}
-                  onChange={handleChange}
-                  placeholder="e.g., STU2024001"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -193,7 +141,7 @@ const AddStudent = () => {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Enter full name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -207,23 +155,8 @@ const AddStudent = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="student@gmail.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  College/Institution <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="college"
-                  value={formData.college}
-                  onChange={handleChange}
-                  placeholder="e.g., Sample College"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="email@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -238,25 +171,25 @@ const AddStudent = () => {
                   value={formData.department}
                   onChange={handleChange}
                   placeholder="e.g., Computer Science"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   required
                 />
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-start gap-2 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+              <svg className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-sm text-blue-700">
-                A temporary password will be generated and sent to the student's email address.
+              <p className="text-sm text-indigo-700">
+                A temporary password will be generated and sent to the sub-admin's email address.
               </p>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => router.push('/admin/students')}
+                onClick={() => router.push('/admin/sub-admins')}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel
@@ -264,9 +197,9 @@ const AddStudent = () => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {submitting ? 'Creating...' : 'Create Student'}
+                {submitting ? 'Creating...' : 'Create Sub-Admin'}
               </button>
             </div>
           </form>
@@ -310,7 +243,7 @@ const AddStudent = () => {
                 <button
                   type="button"
                   onClick={downloadTemplate}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -320,32 +253,25 @@ const AddStudent = () => {
                 <button
                   type="submit"
                   disabled={!csvFile || submitting}
-                  className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {submitting ? 'Uploading...' : 'Upload CSV'}
                 </button>
               </div>
             </form>
 
-            <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
+            <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
               <div className="flex gap-2">
                 <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <div className="text-sm text-yellow-800">
-                  <p className="font-semibold mb-2">CSV Format Requirements:</p>
-                  <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li><strong>Required columns:</strong> studentId, name, email, college, department</li>
-                    <li><strong>Header row:</strong> First row must contain column names</li>
-                    <li><strong>File format:</strong> Must be .csv file (comma-separated values)</li>
-                    <li><strong>File size:</strong> Maximum 5MB per upload</li>
-                    <li><strong>Record limit:</strong> Maximum 500 students per upload</li>
-                    <li><strong>Alternative column names:</strong> You can use 'course', 'program', or 'degree' instead of 'department'</li>
-                    <li><strong>No empty rows:</strong> Remove any blank rows from your file</li>
+                <div className="text-sm text-yellow-700">
+                  <p className="font-medium mb-1">CSV Format Requirements:</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-xs">
+                    <li>Required columns: name, email, department</li>
+                    <li>First row must be headers</li>
+                    <li>Use commas to separate values</li>
                   </ul>
-                  <p className="mt-2 text-xs font-medium">
-                    ⚠️ Download the template to ensure correct format
-                  </p>
                 </div>
               </div>
             </div>
@@ -354,50 +280,27 @@ const AddStudent = () => {
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {uploadResult.created.length + uploadResult.failed.length}
-                    </div>
-                    <div className="text-xs text-blue-700 font-medium">Total Processed</div>
+                    <div className="text-2xl font-bold text-blue-600">{uploadResult.totalProcessed}</div>
+                    <div className="text-xs text-blue-700 font-medium">Total</div>
                   </div>
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-green-600">{uploadResult.created.length}</div>
-                    <div className="text-xs text-green-700 font-medium">Successfully Created</div>
+                    <div className="text-2xl font-bold text-green-600">{uploadResult.created}</div>
+                    <div className="text-xs text-green-700 font-medium">Created</div>
                   </div>
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-red-600">{uploadResult.failed.length}</div>
+                    <div className="text-2xl font-bold text-red-600">{uploadResult.failed}</div>
                     <div className="text-xs text-red-700 font-medium">Failed</div>
                   </div>
                 </div>
 
-                {uploadResult.created.length > 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 max-h-48 overflow-y-auto">
-                    <p className="text-sm font-semibold text-green-800 mb-2">
-                      ✓ Successfully Created Students ({uploadResult.created.length}):
-                    </p>
-                    <ul className="text-xs text-green-700 space-y-1">
-                      {uploadResult.created.map((item, idx) => (
-                        <li key={idx} className="flex items-center gap-2">
-                          <span className="font-medium">{item.studentId}</span>
-                          <span>-</span>
-                          <span>{item.name}</span>
-                          <span className="text-gray-600">({item.email})</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {uploadResult.failed.length > 0 && (
+                {uploadResult.details?.failed?.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-48 overflow-y-auto">
-                    <p className="text-sm font-semibold text-red-800 mb-2">
-                      ✗ Failed Records ({uploadResult.failed.length}):
-                    </p>
-                    <ul className="text-xs text-red-700 space-y-2">
-                      {uploadResult.failed.map((item, idx) => (
-                        <li key={idx} className="border-l-2 border-red-400 pl-2">
-                          <div className="font-medium">Row {item.row}: {item.studentId || 'N/A'}</div>
-                          <div className="text-red-600">{item.email || 'No email'}</div>
-                          <div className="text-red-800 mt-0.5">Reason: {item.reason}</div>
+                    <p className="text-sm font-medium text-red-700 mb-2">Failed Records:</p>
+                    <ul className="text-xs text-red-600 space-y-1">
+                      {uploadResult.details.failed.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="font-medium">Row {item.row}:</span>
+                          <span>{item.email} - {item.reason}</span>
                         </li>
                       ))}
                     </ul>
@@ -412,4 +315,4 @@ const AddStudent = () => {
   );
 };
 
-export default AddStudent;
+export default AddSubAdmin;

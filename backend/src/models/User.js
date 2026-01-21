@@ -17,6 +17,8 @@ import bcrypt from 'bcryptjs';
 // Define user roles as constants for consistency
 export const USER_ROLES = {
   ADMIN: 'ADMIN',
+  SUB_ADMIN: 'SUB_ADMIN',
+  EMPLOYEE: 'EMPLOYEE',
   STUDENT: 'STUDENT',
 };
 
@@ -32,7 +34,7 @@ const userSchema = new mongoose.Schema(
     studentId: {
       type: String,
       trim: true,
-      sparse: true, // Allow null for admins
+      sparse: true, // Allow null for admins, sub-admins, and employees
       // Only required for students, validated in controller
     },
     email: {
@@ -47,13 +49,23 @@ const userSchema = new mongoose.Schema(
         'Please provide a valid email address',
       ],
     },
+    // Department field for all users (students, sub-admins, employees)
+    department: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Department name cannot exceed 200 characters'],
+      // Required for all except admin
+      required: function () {
+        return this.role !== USER_ROLES.ADMIN;
+      },
+    },
     college: {
       type: String,
       trim: true,
       maxlength: [200, 'College name cannot exceed 200 characters'],
-      // College is optional for admin
+      // College is optional for admin and sub-admin, required for students and employees
       required: function () {
-        return this.role === USER_ROLES.STUDENT;
+        return this.role === USER_ROLES.STUDENT || this.role === USER_ROLES.EMPLOYEE;
       },
     },
     passwordHash: {
@@ -68,13 +80,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: Object.values(USER_ROLES),
-        message: 'Role must be either ADMIN or STUDENT',
+        message: 'Role must be ADMIN, SUB_ADMIN, EMPLOYEE, or STUDENT',
       },
       default: USER_ROLES.STUDENT,
     },
     forcePasswordChange: {
       type: Boolean,
-      default: true, // Students must change password on first login
+      default: true, // Students, sub-admins, and employees must change password on first login
     },
     // Track login attempts for security monitoring
     lastLogin: {
@@ -174,6 +186,22 @@ userSchema.statics.findByEmailWithPassword = function (email) {
  */
 userSchema.methods.isAdmin = function () {
   return this.role === USER_ROLES.ADMIN;
+};
+
+/**
+ * Check if user is sub-admin
+ * @returns {boolean}
+ */
+userSchema.methods.isSubAdmin = function () {
+  return this.role === USER_ROLES.SUB_ADMIN;
+};
+
+/**
+ * Check if user is employee
+ * @returns {boolean}
+ */
+userSchema.methods.isEmployee = function () {
+  return this.role === USER_ROLES.EMPLOYEE;
 };
 
 /**

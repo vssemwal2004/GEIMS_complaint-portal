@@ -23,6 +23,8 @@ export default function App({ Component, pageProps }) {
 
   const isAdminRoute = pathname.startsWith('/admin');
   const isStudentRoute = pathname.startsWith('/student');
+  const isSubAdminRoute = pathname.startsWith('/sub-admin');
+  const isEmployeeRoute = pathname.startsWith('/employee');
   const isChangePasswordRoute = pathname === '/ChangePassword';
 
   // Use router.asPath as key to force re-render on navigation
@@ -31,6 +33,18 @@ export default function App({ Component, pageProps }) {
   if (isAdminRoute) {
     content = (
       <ProtectedRoute allowedRoles={['ADMIN']}>
+        <Layout>{content}</Layout>
+      </ProtectedRoute>
+    );
+  } else if (isSubAdminRoute) {
+    content = (
+      <ProtectedRoute allowedRoles={['SUB_ADMIN']}>
+        <Layout>{content}</Layout>
+      </ProtectedRoute>
+    );
+  } else if (isEmployeeRoute) {
+    content = (
+      <ProtectedRoute allowedRoles={['EMPLOYEE']}>
         <Layout>{content}</Layout>
       </ProtectedRoute>
     );
