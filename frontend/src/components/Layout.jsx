@@ -11,7 +11,11 @@ import {
   FiX,
   FiUser,
   FiChevronDown,
-  FiKey
+  FiKey,
+  FiMail,
+  FiCalendar,
+  FiSettings,
+  FiActivity
 } from 'react-icons/fi';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
@@ -139,6 +143,82 @@ const EmployeesMenu = () => {
             className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
           >
             Add Employee
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// System Management Dropdown Menu
+const SystemManagementMenu = () => {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  const isActive = () => {
+    const path = router.asPath.split('?')[0];
+    return path.startsWith('/admin/email-config') || 
+           path.startsWith('/admin/attendance-management') ||
+           path.startsWith('/admin/activity-log');
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1 ${
+          isActive()
+            ? 'bg-purple-50 text-purple-600'
+            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        }`}
+      >
+        <FiSettings size={16} />
+        <span className="hidden lg:inline">System</span>
+        <FiChevronDown
+          size={16}
+          className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-sm py-1 z-50">
+          <Link
+            href="/admin/attendance-management"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <FiCalendar size={16} />
+            <span>Attendance Management</span>
+          </Link>
+          <Link
+            href="/admin/email-config"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <FiMail size={16} />
+            <span>Email Configuration</span>
+          </Link>
+          <Link
+            href="/admin/activity-log"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <FiActivity size={16} />
+            <span>Activity Log</span>
           </Link>
         </div>
       )}
@@ -367,6 +447,9 @@ const Layout = ({ children }) => {
                   
                   {/* Employees Menu */}
                   <EmployeesMenu />
+                  
+                  {/* System Management Menu */}
+                  <SystemManagementMenu />
                 </div>
               </div>
 

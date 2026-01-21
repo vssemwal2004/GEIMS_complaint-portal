@@ -28,16 +28,19 @@ export const getComplaintsForDepartment = asyncHandler(async (req, res) => {
     throw new ValidationError('Sub-admin department not found');
   }
 
+  // Create case-insensitive regex for department matching
+  const departmentRegex = new RegExp(`^${subAdmin.department}$`, 'i');
+
   // Get students whose department matches sub-admin's department (case-insensitive)
   const studentsInDepartment = await User.find({
     role: USER_ROLES.STUDENT,
-    department: { $regex: new RegExp(`^${subAdmin.department}$`, 'i') },
+    department: departmentRegex,
   }).select('_id');
 
-  // Get employees in sub-admin's department
+  // Get employees in sub-admin's department (case-insensitive)
   const employeesInDepartment = await User.find({
     role: USER_ROLES.EMPLOYEE,
-    department: subAdmin.department,
+    department: departmentRegex,
   }).select('_id');
 
   // Combine user IDs
@@ -171,10 +174,13 @@ export const getStats = asyncHandler(async (req, res) => {
     throw new ValidationError('Sub-admin department not found');
   }
 
+  // Create case-insensitive regex for department matching
+  const departmentRegex = new RegExp(`^${subAdmin.department}$`, 'i');
+
   // Get students and employees in department (case-insensitive)
   const [studentsInDepartment, employeesInDepartment] = await Promise.all([
-    User.find({ role: USER_ROLES.STUDENT, department: { $regex: new RegExp(`^${subAdmin.department}$`, 'i') } }).select('_id'),
-    User.find({ role: USER_ROLES.EMPLOYEE, department: { $regex: new RegExp(`^${subAdmin.department}$`, 'i') } }).select('_id'),
+    User.find({ role: USER_ROLES.STUDENT, department: departmentRegex }).select('_id'),
+    User.find({ role: USER_ROLES.EMPLOYEE, department: departmentRegex }).select('_id'),
   ]);
 
   const userIds = [
@@ -243,10 +249,13 @@ export const generateReport = asyncHandler(async (req, res) => {
     };
   }
 
+  // Create case-insensitive regex for department matching
+  const departmentRegex = new RegExp(`^${subAdmin.department}$`, 'i');
+
   // Get users in department
   const [studentsInDepartment, employeesInDepartment] = await Promise.all([
-    User.find({ role: USER_ROLES.STUDENT, department: subAdmin.department }).select('_id'),
-    User.find({ role: USER_ROLES.EMPLOYEE, department: subAdmin.department }).select('_id'),
+    User.find({ role: USER_ROLES.STUDENT, department: departmentRegex }).select('_id'),
+    User.find({ role: USER_ROLES.EMPLOYEE, department: departmentRegex }).select('_id'),
   ]);
 
   const userIds = [

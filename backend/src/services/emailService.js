@@ -296,8 +296,14 @@ export const sendAccountCreatedEmail = async ({ email, name, temporaryPassword, 
       preheader: 'Your GEIMS Complaint Portal account is ready. Temporary password inside.',
     });
     
-    console.log(`✅ Account created email sent to ${email}`);
-    return { success: true, messageId: info.messageId };
+    // Only log if email was actually sent
+    if (info.messageId) {
+      console.log(`✅ Account created email sent to ${email}`);
+      return { success: true, messageId: info.messageId };
+    } else {
+      console.log(` Account email skipped for ${email} - SMTP not configured`);
+      return { success: false, error: 'SMTP not configured' };
+    }
   } catch (error) {
     console.error(`❌ Failed to send account email to ${email}:`, error.message);
     return { success: false, error: error.message };

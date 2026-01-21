@@ -36,6 +36,9 @@ import adminRoutes from './routes/adminRoutes.js';
 import subAdminRoutes from './routes/subAdminRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
+import emailConfigRoutes from './routes/emailConfigRoutes.js';
+import attendanceRoutes from './routes/attendanceRoutes.js';
+import activityLogRoutes from './routes/activityLogRoutes.js';
 
 // Import middlewares
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
@@ -199,6 +202,15 @@ app.use('/api/student', studentRoutes);
 
 // Employee routes (complaint submission, viewing)
 app.use('/api/employee', employeeRoutes);
+
+// Email configuration routes (admin only)
+app.use('/api/email-config', emailConfigRoutes);
+
+// Attendance management routes (admin only)
+app.use('/api/attendance', attendanceRoutes);
+
+// Activity log routes (admin only)
+app.use('/api/activity-logs', activityLogRoutes);
 
 // ===========================================
 // ERROR HANDLING

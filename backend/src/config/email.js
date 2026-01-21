@@ -31,7 +31,7 @@ const createTransporter = () => {
   const pass = process.env.SMTP_PASS;
 
   if (!user || !pass) {
-    console.warn(' SMTP credentials not configured');
+    // SMTP not configured - will skip email sending
     return null;
   }
 
@@ -94,8 +94,8 @@ const sendMailWrapper = {
   sendMail: async (options) => {
     const t = getTransporter();
     if (!t) {
-      console.warn(' Email not sent - SMTP not configured');
-      return { messageId: null };
+      // Only log once - don't spam warnings
+      return { messageId: null, rejected: ['SMTP not configured'] };
     }
     
     return t.sendMail(options);

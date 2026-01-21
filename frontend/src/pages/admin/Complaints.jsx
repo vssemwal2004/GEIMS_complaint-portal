@@ -410,9 +410,21 @@ const AdminComplaints = () => {
         {/* Complaint list (scrollable; takes remaining height) */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-full p-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-3"></div>
-              <p className="text-sm text-gray-500">Loading complaints...</p>
+            <div className="divide-y divide-gray-100">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="px-3 py-2 animate-pulse">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="h-3 bg-gray-200 rounded w-24"></div>
+                      <div className="h-3 bg-gray-200 rounded w-16"></div>
+                    </div>
+                    <div className="h-4 w-16 bg-gray-200 rounded-full"></div>
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded w-3/4 mb-1.5"></div>
+                  <div className="h-2.5 bg-gray-200 rounded w-20"></div>
+                </div>
+              ))}
             </div>
           ) : filteredComplaints.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-8">
@@ -471,7 +483,46 @@ const AdminComplaints = () => {
 
       {/* Right Details Panel */}
       <div className="flex-1 min-w-0 bg-white border border-gray-200 border-l-0">
-        {!selectedComplaint ? (
+        {loading ? (
+          <div className="h-full flex flex-col animate-pulse">
+            <div className="px-5 py-4 border-b border-gray-200">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-48"></div>
+                </div>
+                <div className="h-5 w-20 bg-gray-200 rounded-full"></div>
+              </div>
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="rounded-md border border-gray-200 px-3 py-2">
+                    <div className="h-2.5 bg-gray-200 rounded w-16 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <div className="space-y-4">
+                <div>
+                  <div className="h-3 bg-gray-200 rounded w-16 mb-2"></div>
+                  <div className="rounded-md border border-gray-200 px-4 py-3">
+                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div className="rounded-md border border-gray-200 px-4 py-3">
+                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : !selectedComplaint ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <p className="text-sm font-medium text-gray-800">Select a complaint</p>

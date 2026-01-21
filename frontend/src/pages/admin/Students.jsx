@@ -136,11 +136,31 @@ const AdminStudents = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500">
-                    Loading…
-                  </td>
-                </tr>
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 bg-gray-200 rounded w-32"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 bg-gray-200 rounded w-40"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 bg-gray-200 rounded w-28"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 bg-gray-200 rounded"></div>
+                        <div className="h-7 w-7 bg-gray-200 rounded"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : students.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center">
