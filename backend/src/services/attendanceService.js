@@ -131,27 +131,20 @@ const createTransporter = () => {
   });
 };
 
-// Filter out Leave status records
-const excludeLeaveRecords = (data) => {
-  return data.filter(record => {
-    const status = (record['Status'] || '').toString().trim().toLowerCase();
-    return !status.includes('leave');
-  });
-};
-
 // Filter data by date
-const filterByDate = (data, targetDate) => {
+const filterByDate = (data, targetDate, includeNoInTime = false) => {
   let matchCount = 0;
   const results = data.filter(record => {
     const inTimeValue = record['In Time'];
     const status = (record['Status'] || '').toString().trim().toLowerCase();
+    const isLeaveOrAbsent = status.includes('leave') || status === 'l' || status === 'a' || status.includes('absent');
     
-    // Skip validation for leave records - they don't need In Time
-    if (status.includes('leave')) {
-      return false;
-    }
-    
-    if (!inTimeValue) {
+    // For Leave/Absent without In Time, include if includeNoInTime is true (current date reports)
+    if (!inTimeValue || inTimeValue === '') {
+      if (isLeaveOrAbsent && includeNoInTime) {
+        matchCount++;
+        return true;
+      }
       return false;
     }
     
@@ -191,8 +184,7 @@ const sendToDean = async (data, transporter) => {
   }
 
   const previousDay = moment().subtract(1, 'days').format('YYYY-MM-DD');
-  const dataWithoutLeave = excludeLeaveRecords(data);
-  const filteredData = filterByDate(dataWithoutLeave, previousDay);
+  const filteredData = filterByDate(data, previousDay, true);
 
   if (filteredData.length === 0) {
     const message = `No data available for previous day (${previousDay})`;
@@ -246,8 +238,7 @@ const sendToMedicalSuperintendent = async (data, transporter) => {
   }
 
   const currentDate = moment().format('YYYY-MM-DD');
-  const dataWithoutLeave = excludeLeaveRecords(data);
-  let filteredData = filterByDate(dataWithoutLeave, currentDate);
+  let filteredData = filterByDate(data, currentDate, true);
   
   filteredData = filteredData.filter(record => {
     const designation = record['Users Designation']?.toLowerCase() || '';
@@ -305,8 +296,7 @@ const sendToManagement = async (data, transporter) => {
   }
 
   const currentDate = moment().format('YYYY-MM-DD');
-  const dataWithoutLeave = excludeLeaveRecords(data);
-  const filteredData = filterByDate(dataWithoutLeave, currentDate);
+  const filteredData = filterByDate(data, currentDate, true);
 
   if (filteredData.length === 0) {
     const message = `No data available for current date`;
@@ -359,8 +349,7 @@ const sendToHODs = async (data, transporter) => {
   for (const config of hodConfigs) {
     const department = config.department;
     
-    const dataWithoutLeave = excludeLeaveRecords(data);
-    let filteredData = filterByDate(dataWithoutLeave, currentDate);
+    let filteredData = filterByDate(data, currentDate, true);
     filteredData = filteredData.filter(record => {
       const recordDept = (record['Division/Units'] || '').trim();
       return recordDept.toLowerCase() === department.toLowerCase();
