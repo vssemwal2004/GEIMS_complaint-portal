@@ -40,11 +40,33 @@ const validateFileStructure = (data) => {
 // Parse attendance file
 const processAttendanceFile = async (filePath) => {
   try {
-    const workbook = XLSX.readFile(filePath);
+    const workbook = XLSX.readFile(filePath, {
+      type: 'file',
+      cellDates: false,
+      cellFormula: false,
+      raw: true  // Always use raw to preserve original values
+    });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
-    let data = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+    let data = XLSX.utils.sheet_to_json(worksheet, { 
+      raw: true,  // Always use raw to get original string values
+      defval: '',
+      blankrows: false
+    });
+    
+    // Clean up formulas in Attendance id column (e.g., ="""09960335 -> 09960335)
+    data = data.map(record => {
+      if (record['Attendance id']) {
+        let aid = String(record['Attendance id']);
+        // Remove Excel formula prefix ="""
+        aid = aid.replace(/^="+/g, '');  // Remove =" or ="""
+        aid = aid.replace(/"+$/g, '');    // Remove trailing quotes
+        aid = aid.replace(/"/g, '');      // Remove all remaining quotes
+        record['Attendance id'] = aid.trim();
+      }
+      return record;
+    });
 
     const firstRowKeys = Object.keys(data[0] || {});
     const hasDateLikeHeader = firstRowKeys.some(key => 
@@ -90,26 +112,130 @@ const excelSerialToDate = (serial) => {
 // Create Excel buffer from data
 const createExcelBuffer = (data, sheetName = 'Attendance') => {
   const formattedData = data.map(record => {
-    const newRecord = { ...record };
+    // Create new clean record with exact column order
+    const newRecord = {
+      'S.No': record['S.No'] || '',
+      'Attendance id': '',
+      'User Name': record['User Name'] || '',
+      'Users Designation': record['Users Designation'] || '',
+      'Office Locations': record['Office Locations'] || '',
+      'Division/Units': record['Division/Units'] || '',
+      'In Time': '',
+      'Out Time': '',
+      'Status': record['Status'] || ''
+    };
     
-    if (newRecord['In Time'] && typeof newRecord['In Time'] === 'number') {
-      const date = excelSerialToDate(newRecord['In Time']);
-      newRecord['In Time'] = moment(date).format('M/D/YYYY H:mm');
-    } else if (!newRecord['In Time'] || newRecord['In Time'] === '') {
-      newRecord['In Time'] = '';
+    // Clean Attendance ID (remove any formula remnants and quotes)
+    if (record['Attendance id']) {
+      let aid = String(record['Attendance id']);
+      aid = aid.replace(/^="+/g, '');    // Remove =" or ="""
+      aid = aid.replace(/"+$/g, '');     // Remove trailing quotes
+      aid = aid.replace(/"/g, '');       // Remove any remaining quotes
+      newRecord['Attendance id'] = aid.trim();
     }
     
-    if (newRecord['Out Time'] && typeof newRecord['Out Time'] === 'number') {
-      const date = excelSerialToDate(newRecord['Out Time']);
-      newRecord['Out Time'] = moment(date).format('M/D/YYYY H:mm');
-    } else if (!newRecord['Out Time'] || newRecord['Out Time'] === '') {
-      newRecord['Out Time'] = '';
+    // Format In Time
+    if (record['In Time']) {
+      if (typeof record['In Time'] === 'number') {
+        const date = excelSerialToDate(record['In Time']);
+        newRecord['In Time'] = moment(date).format('DD-MM-YYYY HH:mm');
+      } else {
+        const inTimeStr = String(record['In Time']).trim();
+        if (inTimeStr) {
+          // Check if it's a numeric Excel serial number (as string)
+          const numericValue = parseFloat(inTimeStr);
+          if (!isNaN(numericValue) && numericValue > 1000 && numericValue < 100000) {
+            const date = excelSerialToDate(numericValue);
+            newRecord['In Time'] = moment(date).format('DD-MM-YYYY HH:mm');
+          } else {
+            const parsed = moment(inTimeStr, [
+              'DD/MM/YYYY HH:mm:ss',
+              'DD/MM/YYYY HH:mm',
+              'DD/MM/YYYY',
+              'DD-MM-YYYY HH:mm:ss',
+              'DD-MM-YYYY HH:mm',
+              'DD-MM-YYYY',
+              'DD/MM/YY HH:mm:ss',
+              'DD/MM/YY HH:mm',
+              'DD/MM/YY',
+              'DD-MM-YY HH:mm:ss',
+              'DD-MM-YY HH:mm',
+              'DD-MM-YY',
+              'M/D/YYYY H:mm:ss',
+              'M/D/YYYY H:mm',
+              'M/D/YYYY',
+              'M/D/YY H:mm:ss',
+              'M/D/YY H:mm',
+              'M/D/YY'
+            ], true);
+            newRecord['In Time'] = parsed.isValid() ? parsed.format('DD-MM-YYYY HH:mm') : inTimeStr;
+          }
+        }
+      }
+    }
+    
+    // Format Out Time
+    if (record['Out Time']) {
+      if (typeof record['Out Time'] === 'number') {
+        const date = excelSerialToDate(record['Out Time']);
+        newRecord['Out Time'] = moment(date).format('DD-MM-YYYY HH:mm');
+      } else {
+        const outTimeStr = String(record['Out Time']).trim();
+        if (outTimeStr) {
+          // Check if it's a numeric Excel serial number (as string)
+          const numericValue = parseFloat(outTimeStr);
+          if (!isNaN(numericValue) && numericValue > 1000 && numericValue < 100000) {
+            const date = excelSerialToDate(numericValue);
+            newRecord['Out Time'] = moment(date).format('DD-MM-YYYY HH:mm');
+          } else {
+            const parsed = moment(outTimeStr, [
+              'DD/MM/YYYY HH:mm:ss',
+              'DD/MM/YYYY HH:mm',
+              'DD/MM/YYYY',
+              'DD-MM-YYYY HH:mm:ss',
+              'DD-MM-YYYY HH:mm',
+              'DD-MM-YYYY',
+              'DD/MM/YY HH:mm:ss',
+              'DD/MM/YY HH:mm',
+              'DD/MM/YY',
+              'DD-MM-YY HH:mm:ss',
+              'DD-MM-YY HH:mm',
+              'DD-MM-YY',
+              'M/D/YYYY H:mm:ss',
+              'M/D/YYYY H:mm',
+              'M/D/YYYY',
+              'M/D/YY H:mm:ss',
+              'M/D/YY H:mm',
+              'M/D/YY'
+            ], true);
+            newRecord['Out Time'] = parsed.isValid() ? parsed.format('DD-MM-YYYY HH:mm') : outTimeStr;
+          }
+        }
+      }
     }
     
     return newRecord;
   });
   
-  const worksheet = XLSX.utils.json_to_sheet(formattedData);
+  const worksheet = XLSX.utils.json_to_sheet(formattedData, {
+    header: ['S.No', 'Attendance id', 'User Name', 'Users Designation', 'Office Locations', 'Division/Units', 'In Time', 'Out Time', 'Status'],
+    skipHeader: false
+  });
+  
+  // Set column widths for better formatting
+  const colWidths = [
+    { wch: 8 },  // S.No
+    { wch: 15 }, // Attendance id
+    { wch: 25 }, // User Name
+    { wch: 25 }, // Users Designation
+    { wch: 35 }, // Office Locations
+    { wch: 25 }, // Division/Units
+    { wch: 18 }, // In Time
+    { wch: 18 }, // Out Time
+    { wch: 10 }  // Status
+  ];
+  worksheet['!cols'] = colWidths;
+  
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
@@ -150,17 +276,58 @@ const filterByDate = (data, targetDate, includeNoInTime = false) => {
     
     let inTime;
     
+    // Check if it's a number type
     if (typeof inTimeValue === 'number') {
       const jsDate = excelSerialToDate(inTimeValue);
       inTime = moment(jsDate);
     } else {
-      const inTimeStr = String(inTimeValue);
-      inTime = moment(inTimeStr, 'M/D/YY H:mm', true);
-      if (!inTime.isValid()) {
-        inTime = moment(inTimeStr, 'M/D/YYYY H:mm', true);
-      }
-      if (!inTime.isValid()) {
-        inTime = moment(inTimeStr, 'DD-MM-YYYY HH:mm:ss', true);
+      const inTimeStr = String(inTimeValue).trim();
+      
+      // Check if string is actually a numeric Excel serial number
+      const numericValue = parseFloat(inTimeStr);
+      if (!isNaN(numericValue) && numericValue > 1000 && numericValue < 100000) {
+        // This looks like an Excel serial number (e.g., 46055.32341)
+        const jsDate = excelSerialToDate(numericValue);
+        inTime = moment(jsDate);
+      } else {
+        // Try string date formats - DD/MM/YYYY formats first to avoid ambiguity with MM/DD/YYYY
+        const formats = [
+          'DD/MM/YYYY HH:mm:ss',
+          'DD/MM/YYYY HH:mm',
+          'DD/MM/YYYY',
+          'DD-MM-YYYY HH:mm:ss',
+          'DD-MM-YYYY HH:mm',
+          'DD-MM-YYYY',
+          'DD/MM/YY HH:mm:ss',
+          'DD/MM/YY HH:mm',
+          'DD/MM/YY',
+          'DD-MM-YY HH:mm:ss',
+          'DD-MM-YY HH:mm',
+          'DD-MM-YY',
+          'DD/MM/YYYY h:mm:ss A',
+          'DD/MM/YYYY h:mm A',
+          'DD-MM-YYYY h:mm:ss A',
+          'DD-MM-YYYY h:mm A',
+          'M/D/YYYY H:mm:ss',
+          'M/D/YYYY H:mm',
+          'M/D/YYYY',
+          'M/D/YY H:mm:ss',
+          'M/D/YY H:mm',
+          'M/D/YY',
+          'M/D/YYYY h:mm:ss A',
+          'M/D/YYYY h:mm A',
+          'M/D/YY h:mm A'
+        ];
+        
+        for (const format of formats) {
+          inTime = moment(inTimeStr, format, true);
+          if (inTime.isValid()) {
+            break;
+          }
+        }
+        
+        // Suppress logging - only log if none of the formats worked and we have data
+        // This reduces console spam significantly
       }
     }
     
@@ -184,7 +351,8 @@ const sendToDean = async (data, transporter) => {
   }
 
   const previousDay = moment().subtract(1, 'days').format('YYYY-MM-DD');
-  const filteredData = filterByDate(data, previousDay, true);
+  console.log(`  📅 Filtering for previous day: ${previousDay}`);
+  const filteredData = filterByDate(data, previousDay, false);  // Don't include Leave/Absent without dates for Dean
 
   if (filteredData.length === 0) {
     const message = `No data available for previous day (${previousDay})`;
@@ -219,6 +387,57 @@ const sendToDean = async (data, transporter) => {
   await transporter.sendMail(mailOptions);
   console.log(`  ✓ Email sent to: ${config.emails.join(', ')}`);
   return { sent: true, count: filteredData.length, recipients: config.emails, date: previousDay };
+};
+
+// CASE 1B: Send Leave/Absent Report to Dean
+const sendLeaveAbsentToDean = async (data, transporter) => {
+  const config = await EmailConfig.findOne({ role: 'Dean', isActive: true });
+  if (!config || config.emails.length === 0) {
+    const message = 'No Dean email configuration found';
+    console.log(`  ⚠ ${message}`);
+    return { sent: false, reason: message, skipped: true };
+  }
+
+  // Filter only Leave and Absent records
+  const leaveAbsentData = data.filter(record => {
+    const status = (record['Status'] || '').toString().trim().toLowerCase();
+    return status.includes('leave') || status === 'l' || status === 'a' || status.includes('absent');
+  });
+
+  if (leaveAbsentData.length === 0) {
+    const message = 'No Leave/Absent records found';
+    console.log(`  ⚠ ${message}`);
+    return { sent: false, reason: message, skipped: true };
+  }
+
+  const excelBuffer = createExcelBuffer(leaveAbsentData, 'Leave Absent Report');
+  const today = moment().format('DD-MM-YYYY');
+  const subject = `Leave & Absent Report – Dean – ${today}`;
+  
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  const fromName = process.env.SMTP_FROM_NAME || 'GEIMS Attendance';
+  
+  const mailOptions = {
+    from: `${fromName} <${fromEmail}>`,
+    to: config.emails.join(','),
+    subject: subject,
+    html: `
+      <p>Dear Dean,</p>
+      <p>Please find attached the Leave and Absent report for <strong>${today}</strong>.</p>
+      <p>This report contains all staff members on Leave or marked Absent.</p>
+      <p>Total Records: <strong>${leaveAbsentData.length}</strong></p>
+      <br>
+      <p>Best regards,<br>Attendance Management System</p>
+    `,
+    attachments: [{
+      filename: `Leave_Absent_Dean_${today}.xlsx`,
+      content: excelBuffer
+    }]
+  };
+
+  await transporter.sendMail(mailOptions);
+  console.log(`  ✓ Leave/Absent email sent to: ${config.emails.join(', ')}`);
+  return { sent: true, count: leaveAbsentData.length, recipients: config.emails, date: today };
 };
 
 // CASE 2: Send to Medical Superintendent & Deputy MS
@@ -451,6 +670,35 @@ const sendReports = async (filePath, userId, fileName, keepFile = false) => {
         errorMessage: error.message
       });
       console.log(`✗ CONDITION 1 FAILED: ${error.message}\n`);
+      hasAnyFailure = true;
+    }
+
+    // CONDITION 1B: Dean Leave/Absent Report
+    console.log('--- EXECUTING CONDITION 1B: Dean (Leave & Absent) ---');
+    try {
+      const result1b = await sendLeaveAbsentToDean(data, transporter);
+      results.conditions.push({ condition: '1B', name: 'Dean Leave/Absent Report', status: 'COMPLETED', result: result1b });
+      
+      if (result1b.sent) {
+        result1b.recipients.forEach(email => {
+          activityLog.emailsSent.push({
+            recipient: email,
+            recipientType: 'Dean',
+            recordCount: result1b.count,
+            status: 'success'
+          });
+        });
+      }
+      console.log('✓ CONDITION 1B COMPLETED\n');
+    } catch (error) {
+      results.conditions.push({ condition: '1B', name: 'Dean Leave/Absent Report', status: 'FAILED', error: error.message });
+      activityLog.emailsSent.push({
+        recipient: 'Dean (Leave/Absent)',
+        recipientType: 'Dean',
+        status: 'failed',
+        errorMessage: error.message
+      });
+      console.log(`✗ CONDITION 1B FAILED: ${error.message}\n`);
       hasAnyFailure = true;
     }
 
