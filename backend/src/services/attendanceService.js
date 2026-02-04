@@ -1,6 +1,8 @@
 import XLSX from 'xlsx';
 import nodemailer from 'nodemailer';
 import moment from 'moment';
+import fs from 'fs';
+import { parse as parseCsv } from 'csv-parse/sync';
 import EmailConfig from '../models/EmailConfig.js';
 import ActivityLog from '../models/ActivityLog.js';
 
@@ -40,6 +42,57 @@ const validateFileStructure = (data) => {
 // Parse attendance file
 const processAttendanceFile = async (filePath) => {
   try {
+    const isCsv = (filePath || '').toLowerCase().endsWith('.csv');
+    if (isCsv) {
+      let csvContent = fs.readFileSync(filePath, 'utf8');
+      // The source CSV can contain non-standard, Excel-ish strings like: "="""61474065
+      // These include unescaped quotes inside an already quoted CSV field and can break strict parsers.
+      // We normalize ONLY the 2nd column prefix (Attendance id) so the CSV becomes parseable.
+      const lines = csvContent.split(/\r\n|\n|\r/);
+      if (lines.length > 1) {
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i]) continue;
+          lines[i] = lines[i].replace(/^("[^"]*",)"=+"+/, '$1"');
+        }
+        csvContent = lines.join('\n');
+      }
+
+      let data = parseCsv(csvContent, {
+        columns: (header) => header.map(h => String(h || '').trim()),
+        skip_empty_lines: true,
+        trim: true,
+        bom: true,
+        relax_quotes: true,
+        relax_column_count: true
+      });
+
+      // Normalize missing values
+      data = (data || []).map((record) => {
+        const normalized = {};
+        for (const [key, value] of Object.entries(record || {})) {
+          normalized[String(key || '').trim()] = value == null ? '' : value;
+        }
+        return normalized;
+      });
+
+      // Clean up formulas in Attendance id column (e.g., ="""09960335 -> 09960335)
+      data = data.map(record => {
+        if (record['Attendance id']) {
+          let aid = String(record['Attendance id']);
+          aid = aid.replace(/^=+\s*"+/g, '');
+          aid = aid.replace(/^=+\s*/g, '');
+          aid = aid.replace(/"+$/g, '');
+          aid = aid.replace(/"/g, '');
+          record['Attendance id'] = aid.trim();
+        }
+        return record;
+      });
+
+      validateFileStructure(data);
+      console.log(`Successfully processed ${data.length} records`);
+      return data;
+    }
+
     const workbook = XLSX.readFile(filePath, {
       type: 'file',
       cellDates: false,
@@ -109,118 +162,198 @@ const excelSerialToDate = (serial) => {
   return new Date(excelEpoch.getTime() + milliseconds);
 };
 
+const REPORT_HEADERS = [
+  'S.No',
+  'Attendance id',
+  'User Name',
+  'Users Designation',
+  'Office Locations',
+  'Division/Units',
+  'In Time',
+  'Out Time',
+  'Status'
+];
+
+const cleanExcelishText = (value) => {
+  if (value == null) return '';
+  let text = String(value).trim();
+  // Common patterns seen in exported attendance CSVs: ="""12345, ="12345, """12345
+  text = text.replace(/^=+\s*/g, '');
+  text = text.replace(/^"+/, '');
+  text = text.replace(/"+$/, '');
+  return text.trim();
+};
+
+const formatRecordForReport = (record) => {
+  const newRecord = {
+    'S.No': cleanExcelishText(record['S.No'] || ''),
+    'Attendance id': cleanExcelishText(record['Attendance id'] || ''),
+    'User Name': cleanExcelishText(record['User Name'] || ''),
+    'Users Designation': cleanExcelishText(record['Users Designation'] || ''),
+    'Office Locations': cleanExcelishText(record['Office Locations'] || ''),
+    'Division/Units': cleanExcelishText(record['Division/Units'] || ''),
+    'In Time': '',
+    'Out Time': '',
+    'Status': cleanExcelishText(record['Status'] || '')
+  };
+
+  // Format In Time
+  if (record['In Time']) {
+    if (typeof record['In Time'] === 'number') {
+      const date = excelSerialToDate(record['In Time']);
+      newRecord['In Time'] = moment(date).format('DD-MM-YYYY HH:mm');
+    } else {
+      const inTimeStr = String(record['In Time']).trim();
+      if (inTimeStr) {
+        const numericValue = parseFloat(inTimeStr);
+        if (!isNaN(numericValue) && numericValue > 1000 && numericValue < 100000) {
+          const date = excelSerialToDate(numericValue);
+          newRecord['In Time'] = moment(date).format('DD-MM-YYYY HH:mm');
+        } else {
+          const parsed = moment(inTimeStr, [
+            'DD/MM/YYYY HH:mm:ss',
+            'DD/MM/YYYY HH:mm',
+            'DD/MM/YYYY',
+            'DD-MM-YYYY HH:mm:ss',
+            'DD-MM-YYYY HH:mm',
+            'DD-MM-YYYY',
+            'DD/MM/YY HH:mm:ss',
+            'DD/MM/YY HH:mm',
+            'DD/MM/YY',
+            'DD-MM-YY HH:mm:ss',
+            'DD-MM-YY HH:mm',
+            'DD-MM-YY',
+            'M/D/YYYY H:mm:ss',
+            'M/D/YYYY H:mm',
+            'M/D/YYYY',
+            'M/D/YY H:mm:ss',
+            'M/D/YY H:mm',
+            'M/D/YY'
+          ], true);
+          newRecord['In Time'] = parsed.isValid() ? parsed.format('DD-MM-YYYY HH:mm') : inTimeStr;
+        }
+      }
+    }
+  }
+
+  // Format Out Time
+  if (record['Out Time']) {
+    if (typeof record['Out Time'] === 'number') {
+      const date = excelSerialToDate(record['Out Time']);
+      newRecord['Out Time'] = moment(date).format('DD-MM-YYYY HH:mm');
+    } else {
+      const outTimeStr = String(record['Out Time']).trim();
+      if (outTimeStr) {
+        const numericValue = parseFloat(outTimeStr);
+        if (!isNaN(numericValue) && numericValue > 1000 && numericValue < 100000) {
+          const date = excelSerialToDate(numericValue);
+          newRecord['Out Time'] = moment(date).format('DD-MM-YYYY HH:mm');
+        } else {
+          const parsed = moment(outTimeStr, [
+            'DD/MM/YYYY HH:mm:ss',
+            'DD/MM/YYYY HH:mm',
+            'DD/MM/YYYY',
+            'DD-MM-YYYY HH:mm:ss',
+            'DD-MM-YYYY HH:mm',
+            'DD-MM-YYYY',
+            'DD/MM/YY HH:mm:ss',
+            'DD/MM/YY HH:mm',
+            'DD/MM/YY',
+            'DD-MM-YY HH:mm:ss',
+            'DD-MM-YY HH:mm',
+            'DD-MM-YY',
+            'M/D/YYYY H:mm:ss',
+            'M/D/YYYY H:mm',
+            'M/D/YYYY',
+            'M/D/YY H:mm:ss',
+            'M/D/YY H:mm',
+            'M/D/YY'
+          ], true);
+          newRecord['Out Time'] = parsed.isValid() ? parsed.format('DD-MM-YYYY HH:mm') : outTimeStr;
+        }
+      }
+    }
+  }
+
+  return newRecord;
+};
+
+const csvEscape = (value) => {
+  let text = value == null ? '' : String(value);
+  // Prevent broken rows/cells in consumers that mishandle control characters
+  text = text.replace(/\r\n|\n|\r/g, ' ');
+  text = text.replace(/\u0000/g, '');
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const createCsvBuffer = (data) => {
+  const formattedData = (data || []).map(formatRecordForReport);
+  const lines = [];
+  const delimiter = (process.env.ATTENDANCE_CSV_DELIMITER || ',').toString();
+  // Excel (Windows) can use system list separator; this hint forces the delimiter.
+  const includeSepLine = (process.env.ATTENDANCE_CSV_EXCEL_SEP || 'false').toLowerCase() === 'true';
+  if (includeSepLine) {
+    lines.push(`sep=${delimiter}`);
+  }
+
+  lines.push(REPORT_HEADERS.map(csvEscape).join(delimiter));
+  for (const record of formattedData) {
+    lines.push(REPORT_HEADERS.map((h) => csvEscape(record[h] ?? '')).join(delimiter));
+  }
+  // Use CRLF for best Excel compatibility on Windows
+  const csvText = lines.join('\r\n');
+  const includeBom = (process.env.ATTENDANCE_CSV_UTF8_BOM || 'true').toLowerCase() === 'true';
+  return Buffer.from((includeBom ? '\uFEFF' : '') + csvText, 'utf8');
+};
+
+const createReportAttachment = (data, sheetName, baseFileName, outputFormat) => {
+  if (outputFormat === 'csv') {
+    return {
+      filename: `${baseFileName}.csv`,
+      content: createCsvBuffer(data)
+    };
+  }
+
+  return {
+    filename: `${baseFileName}.xlsx`,
+    content: createExcelBuffer(data, sheetName)
+  };
+};
+
+const resolveReportOutputFormat = (fileName, filePath) => {
+  const configured = (process.env.ATTENDANCE_REPORT_FORMAT || 'auto').toLowerCase();
+  if (configured !== 'auto') {
+    return configured === 'csv' ? 'csv' : 'xlsx';
+  }
+
+  const name = (fileName || '').toLowerCase();
+  const path = (filePath || '').toLowerCase();
+  const looksLikeCsv = name.endsWith('.csv') || path.endsWith('.csv');
+  return looksLikeCsv ? 'csv' : 'xlsx';
+};
+
 // Create Excel buffer from data
 const createExcelBuffer = (data, sheetName = 'Attendance') => {
-  const formattedData = data.map(record => {
-    // Create new clean record with exact column order
-    const newRecord = {
-      'S.No': record['S.No'] || '',
-      'Attendance id': '',
-      'User Name': record['User Name'] || '',
-      'Users Designation': record['Users Designation'] || '',
-      'Office Locations': record['Office Locations'] || '',
-      'Division/Units': record['Division/Units'] || '',
-      'In Time': '',
-      'Out Time': '',
-      'Status': record['Status'] || ''
-    };
-    
-    // Clean Attendance ID (remove any formula remnants and quotes)
-    if (record['Attendance id']) {
-      let aid = String(record['Attendance id']);
-      aid = aid.replace(/^="+/g, '');    // Remove =" or ="""
-      aid = aid.replace(/"+$/g, '');     // Remove trailing quotes
-      aid = aid.replace(/"/g, '');       // Remove any remaining quotes
-      newRecord['Attendance id'] = aid.trim();
-    }
-    
-    // Format In Time
-    if (record['In Time']) {
-      if (typeof record['In Time'] === 'number') {
-        const date = excelSerialToDate(record['In Time']);
-        newRecord['In Time'] = moment(date).format('DD-MM-YYYY HH:mm');
-      } else {
-        const inTimeStr = String(record['In Time']).trim();
-        if (inTimeStr) {
-          // Check if it's a numeric Excel serial number (as string)
-          const numericValue = parseFloat(inTimeStr);
-          if (!isNaN(numericValue) && numericValue > 1000 && numericValue < 100000) {
-            const date = excelSerialToDate(numericValue);
-            newRecord['In Time'] = moment(date).format('DD-MM-YYYY HH:mm');
-          } else {
-            const parsed = moment(inTimeStr, [
-              'DD/MM/YYYY HH:mm:ss',
-              'DD/MM/YYYY HH:mm',
-              'DD/MM/YYYY',
-              'DD-MM-YYYY HH:mm:ss',
-              'DD-MM-YYYY HH:mm',
-              'DD-MM-YYYY',
-              'DD/MM/YY HH:mm:ss',
-              'DD/MM/YY HH:mm',
-              'DD/MM/YY',
-              'DD-MM-YY HH:mm:ss',
-              'DD-MM-YY HH:mm',
-              'DD-MM-YY',
-              'M/D/YYYY H:mm:ss',
-              'M/D/YYYY H:mm',
-              'M/D/YYYY',
-              'M/D/YY H:mm:ss',
-              'M/D/YY H:mm',
-              'M/D/YY'
-            ], true);
-            newRecord['In Time'] = parsed.isValid() ? parsed.format('DD-MM-YYYY HH:mm') : inTimeStr;
-          }
-        }
-      }
-    }
-    
-    // Format Out Time
-    if (record['Out Time']) {
-      if (typeof record['Out Time'] === 'number') {
-        const date = excelSerialToDate(record['Out Time']);
-        newRecord['Out Time'] = moment(date).format('DD-MM-YYYY HH:mm');
-      } else {
-        const outTimeStr = String(record['Out Time']).trim();
-        if (outTimeStr) {
-          // Check if it's a numeric Excel serial number (as string)
-          const numericValue = parseFloat(outTimeStr);
-          if (!isNaN(numericValue) && numericValue > 1000 && numericValue < 100000) {
-            const date = excelSerialToDate(numericValue);
-            newRecord['Out Time'] = moment(date).format('DD-MM-YYYY HH:mm');
-          } else {
-            const parsed = moment(outTimeStr, [
-              'DD/MM/YYYY HH:mm:ss',
-              'DD/MM/YYYY HH:mm',
-              'DD/MM/YYYY',
-              'DD-MM-YYYY HH:mm:ss',
-              'DD-MM-YYYY HH:mm',
-              'DD-MM-YYYY',
-              'DD/MM/YY HH:mm:ss',
-              'DD/MM/YY HH:mm',
-              'DD/MM/YY',
-              'DD-MM-YY HH:mm:ss',
-              'DD-MM-YY HH:mm',
-              'DD-MM-YY',
-              'M/D/YYYY H:mm:ss',
-              'M/D/YYYY H:mm',
-              'M/D/YYYY',
-              'M/D/YY H:mm:ss',
-              'M/D/YY H:mm',
-              'M/D/YY'
-            ], true);
-            newRecord['Out Time'] = parsed.isValid() ? parsed.format('DD-MM-YYYY HH:mm') : outTimeStr;
-          }
-        }
-      }
-    }
-    
-    return newRecord;
-  });
+  const formattedData = (data || []).map(formatRecordForReport);
   
   const worksheet = XLSX.utils.json_to_sheet(formattedData, {
-    header: ['S.No', 'Attendance id', 'User Name', 'Users Designation', 'Office Locations', 'Division/Units', 'In Time', 'Out Time', 'Status'],
+    header: REPORT_HEADERS,
     skipHeader: false
   });
+
+  // Force all data cells to string (avoid Excel treating some fields as formulas)
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  for (let row = range.s.r + 1; row <= range.e.r; row++) {
+    for (let col = range.s.c; col <= range.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+      const cell = worksheet[cellAddress];
+      if (!cell) continue;
+      cell.t = 's';
+      cell.v = cleanExcelishText(cell.v);
+      delete cell.f;
+      delete cell.w;
+    }
+  }
   
   // Set column widths for better formatting
   const colWidths = [
@@ -342,7 +475,7 @@ const filterByDate = (data, targetDate, includeNoInTime = false) => {
 };
 
 // CASE 1: Send to Dean (Previous day, all records)
-const sendToDean = async (data, transporter) => {
+const sendToDean = async (data, transporter, outputFormat) => {
   const config = await EmailConfig.findOne({ role: 'Dean', isActive: true });
   if (!config || config.emails.length === 0) {
     const message = 'No Dean email configuration found';
@@ -360,7 +493,12 @@ const sendToDean = async (data, transporter) => {
     return { sent: false, reason: message, skipped: true };
   }
 
-  const excelBuffer = createExcelBuffer(filteredData, 'Dean Report');
+  const attachment = createReportAttachment(
+    filteredData,
+    'Dean Report',
+    `Attendance_Dean_${moment(previousDay).format('DD-MM-YYYY')}`,
+    outputFormat
+  );
   const subject = `Daily Attendance Report – Dean – ${moment(previousDay).format('DD-MM-YYYY')}`;
   
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
@@ -379,8 +517,8 @@ const sendToDean = async (data, transporter) => {
       <p>Best regards,<br>Attendance Management System</p>
     `,
     attachments: [{
-      filename: `Attendance_Dean_${moment(previousDay).format('DD-MM-YYYY')}.xlsx`,
-      content: excelBuffer
+      filename: attachment.filename,
+      content: attachment.content
     }]
   };
 
@@ -390,7 +528,7 @@ const sendToDean = async (data, transporter) => {
 };
 
 // CASE 1B: Send Leave/Absent Report to Dean
-const sendLeaveAbsentToDean = async (data, transporter) => {
+const sendLeaveAbsentToDean = async (data, transporter, outputFormat) => {
   const config = await EmailConfig.findOne({ role: 'Dean', isActive: true });
   if (!config || config.emails.length === 0) {
     const message = 'No Dean email configuration found';
@@ -410,7 +548,12 @@ const sendLeaveAbsentToDean = async (data, transporter) => {
     return { sent: false, reason: message, skipped: true };
   }
 
-  const excelBuffer = createExcelBuffer(leaveAbsentData, 'Leave Absent Report');
+  const attachment = createReportAttachment(
+    leaveAbsentData,
+    'Leave Absent Report',
+    `Leave_Absent_Dean_${moment().format('DD-MM-YYYY')}`,
+    outputFormat
+  );
   const today = moment().format('DD-MM-YYYY');
   const subject = `Leave & Absent Report – Dean – ${today}`;
   
@@ -430,8 +573,8 @@ const sendLeaveAbsentToDean = async (data, transporter) => {
       <p>Best regards,<br>Attendance Management System</p>
     `,
     attachments: [{
-      filename: `Leave_Absent_Dean_${today}.xlsx`,
-      content: excelBuffer
+      filename: attachment.filename,
+      content: attachment.content
     }]
   };
 
@@ -441,7 +584,7 @@ const sendLeaveAbsentToDean = async (data, transporter) => {
 };
 
 // CASE 2: Send to Medical Superintendent & Deputy MS
-const sendToMedicalSuperintendent = async (data, transporter) => {
+const sendToMedicalSuperintendent = async (data, transporter, outputFormat) => {
   const msConfig = await EmailConfig.findOne({ role: 'Medical Superintendent', isActive: true });
   const dmsConfig = await EmailConfig.findOne({ role: 'Deputy Medical Superintendent', isActive: true });
 
@@ -470,7 +613,12 @@ const sendToMedicalSuperintendent = async (data, transporter) => {
     return { sent: false, reason: message, skipped: true };
   }
 
-  const excelBuffer = createExcelBuffer(filteredData, 'MS Report');
+  const attachment = createReportAttachment(
+    filteredData,
+    'MS Report',
+    `Attendance_MS_${moment(currentDate).format('DD-MM-YYYY')}`,
+    outputFormat
+  );
   const subject = `Daily Attendance Report – TUTOR NG & Junior Resident NG – ${moment(currentDate).format('DD-MM-YYYY')}`;
   
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
@@ -489,8 +637,8 @@ const sendToMedicalSuperintendent = async (data, transporter) => {
       <p>Best regards,<br>Attendance Management System</p>
     `,
     attachments: [{
-      filename: `Attendance_MS_${moment(currentDate).format('DD-MM-YYYY')}.xlsx`,
-      content: excelBuffer
+      filename: attachment.filename,
+      content: attachment.content
     }]
   };
 
@@ -500,7 +648,7 @@ const sendToMedicalSuperintendent = async (data, transporter) => {
 };
 
 // CASE 3: Send to Management Team
-const sendToManagement = async (data, transporter) => {
+const sendToManagement = async (data, transporter, outputFormat) => {
   const roles = ['Dean', 'Medical Director', 'Medical Representative', 'Medical Superintendent', 'HR Head'];
   const configs = await EmailConfig.find({ role: { $in: roles }, isActive: true });
 
@@ -523,7 +671,12 @@ const sendToManagement = async (data, transporter) => {
     return { sent: false, reason: message, skipped: true };
   }
 
-  const excelBuffer = createExcelBuffer(filteredData, 'Management Report');
+  const attachment = createReportAttachment(
+    filteredData,
+    'Management Report',
+    `Attendance_Management_${moment(currentDate).format('DD-MM-YYYY')}`,
+    outputFormat
+  );
   const subject = `Daily Attendance Report – Management – ${moment(currentDate).format('DD-MM-YYYY')}`;
   
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
@@ -542,8 +695,8 @@ const sendToManagement = async (data, transporter) => {
       <p>Best regards,<br>Attendance Management System</p>
     `,
     attachments: [{
-      filename: `Attendance_Management_${moment(currentDate).format('DD-MM-YYYY')}.xlsx`,
-      content: excelBuffer
+      filename: attachment.filename,
+      content: attachment.content
     }]
   };
 
@@ -553,7 +706,7 @@ const sendToManagement = async (data, transporter) => {
 };
 
 // CASE 4: Send to HODs (Department-wise)
-const sendToHODs = async (data, transporter) => {
+const sendToHODs = async (data, transporter, outputFormat) => {
   const hodConfigs = await EmailConfig.find({ role: 'HOD', isActive: true });
 
   if (hodConfigs.length === 0) {
@@ -579,7 +732,12 @@ const sendToHODs = async (data, transporter) => {
       continue;
     }
 
-    const excelBuffer = createExcelBuffer(filteredData, department);
+    const attachment = createReportAttachment(
+      filteredData,
+      department,
+      `Attendance_${department.replace(/[^a-z0-9]/gi, '_')}_${moment(currentDate).format('DD-MM-YYYY')}`,
+      outputFormat
+    );
     const subject = `Daily Attendance Report – ${department} – ${moment(currentDate).format('DD-MM-YYYY')}`;
     
     const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
@@ -598,8 +756,8 @@ const sendToHODs = async (data, transporter) => {
         <p>Best regards,<br>Attendance Management System</p>
       `,
       attachments: [{
-        filename: `Attendance_${department.replace(/[^a-z0-9]/gi, '_')}_${moment(currentDate).format('DD-MM-YYYY')}.xlsx`,
-        content: excelBuffer
+        filename: attachment.filename,
+        content: attachment.content
       }]
     };
 
@@ -637,6 +795,9 @@ const sendReports = async (filePath, userId, fileName, keepFile = false) => {
   try {
     const data = await processAttendanceFile(filePath);
     console.log(`\nStarting email dispatch workflow - Total records: ${data.length}\n`);
+
+    const reportOutputFormat = resolveReportOutputFormat(fileName, filePath);
+    console.log(`Report output format resolved to: ${reportOutputFormat.toUpperCase()}`);
     
     activityLog.totalRecords = data.length;
     
@@ -647,7 +808,7 @@ const sendReports = async (filePath, userId, fileName, keepFile = false) => {
     // CONDITION 1: Dean Report
     console.log('--- EXECUTING CONDITION 1: Dean (Previous Day - All) ---');
     try {
-      const result1 = await sendToDean(data, transporter);
+      const result1 = await sendToDean(data, transporter, reportOutputFormat);
       results.conditions.push({ condition: 1, name: 'Dean Report', status: 'COMPLETED', result: result1 });
       
       if (result1.sent) {
@@ -676,7 +837,7 @@ const sendReports = async (filePath, userId, fileName, keepFile = false) => {
     // CONDITION 1B: Dean Leave/Absent Report
     console.log('--- EXECUTING CONDITION 1B: Dean (Leave & Absent) ---');
     try {
-      const result1b = await sendLeaveAbsentToDean(data, transporter);
+      const result1b = await sendLeaveAbsentToDean(data, transporter, reportOutputFormat);
       results.conditions.push({ condition: '1B', name: 'Dean Leave/Absent Report', status: 'COMPLETED', result: result1b });
       
       if (result1b.sent) {
@@ -705,7 +866,7 @@ const sendReports = async (filePath, userId, fileName, keepFile = false) => {
     // CONDITION 2: MS/Deputy MS Report
     console.log('--- EXECUTING CONDITION 2: MS/Deputy MS (Current Day - Tutors) ---');
     try {
-      const result2 = await sendToMedicalSuperintendent(data, transporter);
+      const result2 = await sendToMedicalSuperintendent(data, transporter, reportOutputFormat);
       results.conditions.push({ condition: 2, name: 'MS/Deputy MS Report', status: 'COMPLETED', result: result2 });
       
       if (result2.sent) {
@@ -734,7 +895,7 @@ const sendReports = async (filePath, userId, fileName, keepFile = false) => {
     // CONDITION 3: Management Team
     console.log('--- EXECUTING CONDITION 3: Management Team (Current Day - All) ---');
     try {
-      const result3 = await sendToManagement(data, transporter);
+      const result3 = await sendToManagement(data, transporter, reportOutputFormat);
       results.conditions.push({ condition: 3, name: 'Management Report', status: 'COMPLETED', result: result3 });
       
       if (result3.sent) {
@@ -763,7 +924,7 @@ const sendReports = async (filePath, userId, fileName, keepFile = false) => {
     // CONDITION 4: HODs
     console.log('--- EXECUTING CONDITION 4: HODs (Current Day - By Department) ---');
     try {
-      const result4 = await sendToHODs(data, transporter);
+      const result4 = await sendToHODs(data, transporter, reportOutputFormat);
       results.conditions.push({ condition: 4, name: 'HOD Reports', status: 'COMPLETED', result: result4 });
       
       if (result4.sent && result4.departments) {
@@ -831,4 +992,4 @@ const sendReports = async (filePath, userId, fileName, keepFile = false) => {
   }
 };
 
-export { processAttendanceFile, sendReports, createExcelBuffer };
+export { processAttendanceFile, sendReports, createExcelBuffer, createCsvBuffer };
