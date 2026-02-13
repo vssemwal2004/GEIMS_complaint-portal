@@ -174,6 +174,32 @@ const REPORT_HEADERS = [
   'Status'
 ];
 
+// Normalize department names to handle variations between email config and CSV data
+const normalizeDepartmentName = (deptName) => {
+  if (!deptName) return '';
+  let normalized = String(deptName)
+    .toLowerCase()
+    .trim()
+    .replace(/\band\b/g, '')         // Remove standalone 'and'
+    .replace(/[&/\-_\s]+/g, ' ')    // Replace separators with space
+    .replace(/\s+/g, ' ')           // Collapse multiple spaces
+    .trim();
+  
+  // Handle common variations
+  const variations = {
+    'ent otorhinolaryngology': 'ent',
+    'forensic medicine toxicology': 'forensic medicine',
+    'obstetrics gynaecology': 'obstetrics',
+    'obstetrics gynecology': 'obstetrics',
+    'orthopaedics': 'orthopedics',
+    'paediatrics': 'pediatrics',
+    'radio diagnosis': 'radiology',
+    'radiodiagnosis': 'radiology'
+  };
+  
+  return variations[normalized] || normalized;
+};
+
 const cleanExcelishText = (value) => {
   if (value == null) return '';
   let text = String(value).trim();
@@ -720,17 +746,21 @@ const sendToHODs = async (data, transporter, outputFormat) => {
 
   for (const config of hodConfigs) {
     const department = config.department;
+    const normalizedConfigDept = normalizeDepartmentName(department);
     
     let filteredData = filterByDate(data, currentDate, true);
     filteredData = filteredData.filter(record => {
       const recordDept = (record['Division/Units'] || '').trim();
-      return recordDept.toLowerCase() === department.toLowerCase();
+      const normalizedRecordDept = normalizeDepartmentName(recordDept);
+      return normalizedRecordDept === normalizedConfigDept;
     });
 
     if (filteredData.length === 0) {
-      console.log(`    ⚠ No data for department: ${department}`);
+      console.log(`    ⚠ No data for department: ${department} (normalized: ${normalizedConfigDept})`);
       continue;
     }
+
+    console.log(`    ✓ Matched ${filteredData.length} records for department: ${department} (normalized: ${normalizedConfigDept})`);
 
     const attachment = createReportAttachment(
       filteredData,
